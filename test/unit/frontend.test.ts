@@ -13,6 +13,7 @@ const PROXY_HEADERS = {
   "swell-app-id": "zoho",
   "swell-admin-url": "https://swell-apps.swell.store",
   "swell-environment-id": "test",
+  "swell-public-key": "app_pk_test_page",
   "x-forwarded-host": PAGE_HOST,
 };
 const SESSION = { cookie: "_swell_admin_session=sess_1" };
@@ -168,6 +169,13 @@ describe("/app-api routes", () => {
     });
   });
 
+  it("returns the redirect URI of the last connect, which a new install makes outdated", async () => {
+    const old = "https://swell-apps--old--app.swell.store/oauth/callback";
+    fakePlatform({ connection: { id: "conn_1", status: "disconnected", redirect_uri: old } });
+    const res = await app.request("/app-api/status", { method: "POST", headers: JSON_POST, body: "{}" });
+    expect(await res.json()).toMatchObject({ redirect_uri: old, callback_url: CALLBACK });
+  });
+
   it("starts a connect using the callback URL derived from the proxy host", async () => {
     const { current } = fakePlatform();
 
@@ -211,9 +219,13 @@ describe("/app-api catalog", () => {
       },
       webhooks: {
         applies: true,
-        urls: {
-          shipments: expect.stringMatching(new RegExp(`^https://${PAGE_HOST}/webhooks/zoho/shipments\\?token=[0-9a-f]{64}$`)),
-          stock: expect.stringMatching(new RegExp(`^https://${PAGE_HOST}/webhooks/zoho/stock\\?token=[0-9a-f]{64}$`)),
+        // The store gateway, with the install key from the proxy: not the page host.
+        manual: {
+          url: "https://swell-apps.swell.store/functions/zoho/zoho-webhook",
+          headers: [
+            { name: "Authorization", value: "app_pk_test_page" },
+            { name: "X-Swell-Token", value: expect.stringMatching(/^[0-9a-f]{64}$/) },
+          ],
         },
         shipments: { last_received_at: null },
         failures: [],
@@ -249,35 +261,15 @@ describe("/app-api catalog", () => {
   });
 });
 
-describe("/webhooks/zoho/:topic", () => {
-  const SECRET = "c".repeat(64);
-  const CONNECTED = { id: "conn_1", status: "connected", organization_id: "org1", has_inventory: true, webhook_secret: SECRET };
-  // Zoho's servers call in without any dashboard session.
-  const post = (path: string, body = '{"inventory_adjustment":{"inventory_adjustment_id":"a1"}}', headers: Record<string, string> = PROXY_HEADERS) =>
-    app.request(path, { method: "POST", headers: { ...headers, "content-type": "application/json" }, body });
-
-  it("stores a call carrying this store's token, without a dashboard session", async () => {
-    const { events, current } = fakePlatform({ connection: CONNECTED });
-    const res = await post(`/webhooks/zoho/stock?token=${SECRET}`);
-    expect(res.status).toBe(200);
-    expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(events).toEqual([expect.objectContaining({ topic: "stock", source: "inventory_adjustment", status: "received" })]);
-    expect(current()!.webhook_stock_at).toEqual(expect.any(String));
-  });
-
-  it("refuses a wrong token, an unknown topic, and calls that bypass the proxy", async () => {
-    const { events } = fakePlatform({ connection: CONNECTED });
-    expect((await post(`/webhooks/zoho/stock?token=${"d".repeat(64)}`)).status).toBe(401);
-    expect((await post("/webhooks/zoho/stock")).status).toBe(401);
-    expect((await post(`/webhooks/zoho/orders?token=${SECRET}`)).status).toBe(404);
-    expect((await post(`/webhooks/zoho/stock?token=${SECRET}`, "{}", {})).status).toBe(400);
-    expect(events).toEqual([]);
-  });
-
-  it("refuses an oversized body before reading it", async () => {
-    const { events } = fakePlatform({ connection: CONNECTED });
-    const res = await post(`/webhooks/zoho/stock?token=${SECRET}`, "{}", { ...PROXY_HEADERS, "content-length": "2000000" });
-    expect(res.status).toBe(413);
+describe("webhooks", () => {
+  it("are no longer taken on the page host, which changes with every install", async () => {
+    const { events } = fakePlatform({ connection: { id: "conn_1", status: "connected", has_inventory: true, webhook_secret: "c".repeat(64) } });
+    const res = await app.request(`/webhooks/zoho/stock?token=${"c".repeat(64)}`, {
+      method: "POST",
+      headers: { ...PROXY_HEADERS, "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(404);
     expect(events).toEqual([]);
   });
 });

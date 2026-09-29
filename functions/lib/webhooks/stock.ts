@@ -64,7 +64,7 @@ export async function refreshStock(
   deadline: number,
 ): Promise<StockRefreshResult> {
   if (zoho.itemsApi !== 'inventory' || !itemIds.length) return { refreshed: 0, remaining: [], notes: [] };
-  const list = await ctx.swell.get(LINKS, { where: { zoho_item_id: { $in: itemIds }, zoho_tracked: true }, limit: 1000 });
+  const list = await ctx.swell.get(LINKS, { where: { zoho_item_id: { $in: itemIds }, zoho_tracked: true }, sort: 'id asc', limit: 1000 });
   const links: ItemLink[] = list?.results ?? [];
   if (!links.length) return { refreshed: 0, remaining: [], notes: ['No linked item that Zoho tracks'] };
 

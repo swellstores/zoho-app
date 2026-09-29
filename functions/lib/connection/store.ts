@@ -44,6 +44,21 @@ export interface Connection {
   webhook_shipments_at?: string | null;
   webhook_stock_at?: string | null;
   webhook_stock_sources?: string[];
+  /** The install key the webhooks in `webhook_current_ids` send; a new install has another */
+  webhook_public_key?: string | null;
+  webhook_current_ids?: string[];
+  webhook_repair_error?: 'needs_reconnect' | null;
+  webhook_checked_at?: string | null;
+  stock_catchup?: StockCatchup | null;
+}
+
+/** Stock refresh from Zoho for every linked item after the webhooks were down. */
+export interface StockCatchup {
+  status: 'running' | 'done';
+  cursor?: string | null;
+  refreshed?: number;
+  started_at?: string | null;
+  finished_at?: string | null;
 }
 
 // The bare name resolves to this app's collection for app credentials (both
@@ -75,14 +90,18 @@ export async function updateConnection(
   return swell.put(`${collection(appId)}/${id}`, patch);
 }
 
-/** Every field a working connection holds, reset to empty. */
-/** Webhook calls seen so far belong to one Zoho organization. */
+/** Webhook calls seen so far, and the webhooks set up, belong to one Zoho organization. */
 export const WEBHOOKS_UNSEEN = {
   webhook_shipments_at: null,
   webhook_stock_at: null,
   webhook_stock_sources: { $set: [] },
+  webhook_public_key: null,
+  webhook_current_ids: { $set: [] },
+  webhook_checked_at: null,
+  stock_catchup: null,
 };
 
+/** Every field a working connection holds, reset to empty. */
 export const CLEARED_CONNECTION = {
   data_center: null,
   accounts_server: null,
@@ -110,6 +129,8 @@ export interface ConnectionView {
   products: { books: boolean; inventory: boolean };
   last_error: string | null;
   date_connected: string | null;
+  /** The callback URL of the last connect; Zoho accepts only the one registered in its API Console */
+  redirect_uri: string | null;
 }
 
 /** What the app page may see: never tokens or nonces. */
@@ -131,5 +152,6 @@ export function toView(connection: Connection | null): ConnectionView {
     },
     last_error: connection?.last_error ?? null,
     date_connected: connection?.date_connected ?? null,
+    redirect_uri: connection?.redirect_uri ?? null,
   };
 }

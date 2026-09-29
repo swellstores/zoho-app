@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import webhookFunction from "../../../functions/zoho-webhook";
+import { isEndpointUrl, webhookEndpoint, webhookHeaders } from "../../../functions/lib/webhooks/endpoint";
 import { itemIdsIn, parseWebhookBody, recordOf, sourceModule } from "../../../functions/lib/webhooks/payload";
-import { ensureWebhookSecret, receiveWebhook, webhookUrl } from "../../../functions/lib/webhooks/receive";
+import { ensureWebhookSecret, receiveWebhook } from "../../../functions/lib/webhooks/receive";
 import { getWebhooksStatus, sourceLabel } from "../../../functions/lib/webhooks/status";
-import { CONNECTED_INVENTORY, createFakeStore, fakeZoho } from "../../helpers/fake-store";
+import { createMockRequest } from "../../helpers/mock-request";
+import { CONNECTED_INVENTORY, createFakeStore, fakeZoho, PUBLIC_KEY } from "../../helpers/fake-store";
 
 const SECRET = "a".repeat(64);
 const ADJUSTMENT = {
@@ -73,8 +76,11 @@ describe("receiveWebhook", () => {
     const store = createFakeStore({ connection: { ...CONNECTED_INVENTORY, webhook_secret: SECRET } });
 
     const result = await receiveWebhook(store.ctx, "stock", SECRET, "payload=", "application/x-www-form-urlencoded;charset=UTF-8");
+    // With a JSON body, as the app sets its webhooks up.
+    const json = await receiveWebhook(store.ctx, "stock", SECRET, '{\n  "payload": ""\n}', "application/json; charset=utf-8");
 
     expect(result).toEqual({ ok: true, source: null, check: true });
+    expect(json).toEqual({ ok: true, source: null, check: true });
     expect(store.events()).toEqual([]);
     expect(store.connection().webhook_stock_at).toEqual(expect.any(String));
   });
@@ -112,7 +118,7 @@ describe("receiveWebhook", () => {
   });
 });
 
-describe("webhook secret and URLs", () => {
+describe("webhook secret and endpoint", () => {
   it("creates the secret once and keeps it", async () => {
     const store = createFakeStore({ connection: CONNECTED_INVENTORY });
     const first = await ensureWebhookSecret(store.ctx, store.connection() as any);
@@ -121,20 +127,58 @@ describe("webhook secret and URLs", () => {
     expect(await ensureWebhookSecret(store.ctx, store.connection() as any)).toBe(first);
   });
 
-  it("builds the URL on the app page host", () => {
-    expect(webhookUrl("host.swell.store", "stock", "abc")).toBe("https://host.swell.store/webhooks/zoho/stock?token=abc");
+  it("points at the webhook function on the store gateway, which outlives any install", () => {
+    const endpoint = webhookEndpoint({ storeId: "swell-apps", appId: "zoho", publicKey: PUBLIC_KEY })!;
+    expect(endpoint).toEqual({ url: "https://swell-apps.swell.store/functions/zoho/zoho-webhook", publicKey: PUBLIC_KEY });
+    expect(webhookEndpoint({ storeId: "swell-apps", appId: "zoho", publicKey: null })).toBeNull();
+    expect(webhookHeaders(endpoint, "stock", "abc")).toEqual([
+      { param_name: "Authorization", param_value: PUBLIC_KEY },
+      { param_name: "X-Swell-Topic", param_value: "stock" },
+      { param_name: "X-Swell-Token", param_value: "abc" },
+    ]);
+  });
+
+  it("recognizes the endpoint URL whatever query Zoho kept", () => {
+    const endpoint = webhookEndpoint({ storeId: "swell-apps", appId: "zoho", publicKey: PUBLIC_KEY })!;
+    expect(isEndpointUrl("https://swell-apps.swell.store/functions/zoho/zoho-webhook?", endpoint)).toBe(true);
+    expect(isEndpointUrl("https://swell-apps.swell.store/functions/zoho/zoho-webhook&", endpoint)).toBe(true);
+    expect(isEndpointUrl("https://other.swell.store/functions/zoho/zoho-webhook", endpoint)).toBe(false);
+    expect(isEndpointUrl("not a url", endpoint)).toBe(false);
+  });
+});
+
+describe("zoho-webhook function", () => {
+  const call = (store: ReturnType<typeof createFakeStore>, headers: Record<string, string>, body = JSON.stringify(ADJUSTMENT)) => {
+    const req = createMockRequest({ method: "POST", headers, swell: store.swell as any, store: { id: "swell-apps" }, appId: "zoho" });
+    Object.assign(req, { rawBody: body, publicKey: PUBLIC_KEY });
+    return webhookFunction(req);
+  };
+
+  it("stores a call that carries this store's token and a topic", async () => {
+    const store = createFakeStore({ connection: { ...CONNECTED_INVENTORY, webhook_secret: SECRET } });
+    expect(await call(store, { "x-swell-topic": "stock", "x-swell-token": SECRET, "content-type": "application/json" })).toEqual({ ok: true });
+    expect(store.events()).toEqual([expect.objectContaining({ topic: "stock", source: "inventory_adjustment", status: "received" })]);
+  });
+
+  it("answers 401 to a wrong token, 404 to an unknown topic and 413 to a runaway body", async () => {
+    const store = createFakeStore({ connection: { ...CONNECTED_INVENTORY, webhook_secret: SECRET } });
+    await expect(call(store, { "x-swell-topic": "stock", "x-swell-token": "b".repeat(64) })).rejects.toMatchObject({ status: 401 });
+    await expect(call(store, { "x-swell-topic": "stock" })).rejects.toMatchObject({ status: 401 });
+    await expect(call(store, { "x-swell-topic": "orders", "x-swell-token": SECRET })).rejects.toMatchObject({ status: 404 });
+    await expect(call(store, { "x-swell-topic": "stock", "x-swell-token": SECRET }, "x".repeat(1_000_001))).rejects.toMatchObject({ status: 413 });
+    expect(store.events()).toEqual([]);
   });
 });
 
 describe("getWebhooksStatus", () => {
   it("does not apply to a Zoho Books organization and creates no secret", async () => {
     const store = createFakeStore({ connection: { ...CONNECTED_INVENTORY, has_inventory: false } });
-    const status = await getWebhooksStatus(store.ctx, "host.swell.store");
-    expect(status).toMatchObject({ applies: false, urls: null });
+    const status = await getWebhooksStatus(store.ctx);
+    expect(status).toMatchObject({ applies: false, manual: null });
     expect(store.connection().webhook_secret).toBeUndefined();
   });
 
-  it("gives this store's URLs, what has arrived, and recent failures", async () => {
+  it("gives what a rule set up by hand needs, what has arrived, and recent failures", async () => {
     fakeZoho();
     const store = createFakeStore({
       connection: {
@@ -151,12 +195,16 @@ describe("getWebhooksStatus", () => {
       { id: "e3", topic: "stock", status: "processed", date_created: recent },
     );
 
-    const status = await getWebhooksStatus(store.ctx, "host.swell.store");
+    const status = await getWebhooksStatus(store.ctx);
 
     expect(status.applies).toBe(true);
-    expect(status.urls).toEqual({
-      shipments: `https://host.swell.store/webhooks/zoho/shipments?token=${SECRET}`,
-      stock: `https://host.swell.store/webhooks/zoho/stock?token=${SECRET}`,
+    expect(status.manual).toEqual({
+      url: "https://swell-apps.swell.store/functions/zoho/zoho-webhook",
+      headers: [
+        { name: "Authorization", value: PUBLIC_KEY },
+        { name: "X-Swell-Token", value: SECRET },
+      ],
+      topic_header: "X-Swell-Topic",
     });
     expect(status.shipments.last_received_at).toBeNull();
     expect(status.stock.last_received_at).toBe("2026-09-28T10:00:00.000Z");
@@ -166,10 +214,11 @@ describe("getWebhooksStatus", () => {
     expect(status.failures).toEqual([{ id: "e1", topic: "shipments", source: "Shipments", error: "Boom", date_created: recent }]);
   });
 
-  it("leaves URLs out when the page host is unknown", async () => {
+  it("reads no rules without the install key, which only the dashboard passes", async () => {
     fakeZoho();
     const store = createFakeStore({ connection: { ...CONNECTED_INVENTORY, webhook_secret: SECRET } });
-    expect((await getWebhooksStatus(store.ctx, null)).urls).toBeNull();
+    const status = await getWebhooksStatus({ ...store.ctx, publicKey: null });
+    expect(status).toMatchObject({ manual: null, rules: null, rules_error: expect.stringMatching(/Swell dashboard/) });
   });
 
   it("labels modules for people", () => {

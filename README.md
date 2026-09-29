@@ -20,7 +20,7 @@ Connects the store to one Zoho organization through the merchant's own Zoho API 
 Every product and variant is linked to a Zoho item: by SKU, or by an exact name when there is no SKU. Items that already exist in Zoho are linked without changes; missing ones are created (each variant as its own item, named "Product — Variant"). Stock-tracked products become stock items in Zoho Inventory, with Swell's stock as opening stock, valued at the product's regular price. Later changes to a name, SKU, price or status are sent to Zoho. **Sync products** brings the existing catalog over in the background, with progress and a list of anything Zoho rejected. Deleting a product in Swell leaves its Zoho item in place.
 
 - **Where you see it:** the **Products** card on the Zoho page.
-- **Built with:** `product-sync` (`product.created`, `.updated`, `.deleted`, and the same for variants), `product-backfill` (cron, every minute, only while a catalog sync runs), the app collection `item-links`.
+- **Built with:** `product-sync` (`product.created`, `.updated`, `.deleted`, and the same for variants), `product-backfill` (cron, every minute: works only while a catalog sync or a stock refresh runs), the app collection `item-links`.
 
 ### Customers
 
@@ -50,21 +50,23 @@ A placed order becomes a Zoho sales order, which reserves the stock. When the or
 Zoho owns stock. When stock changes in Zoho (adjustments, purchase receives, transfer orders, sales return receives, and sales orders or invoices from other channels), the Swell stock of the items involved is set to Zoho's available-for-sale quantity within seconds. Units Swell has sold that Zoho hasn't recorded yet are held back. Stock changed directly in Swell outside orders (a return put back in stock, a manual adjustment) is set back to Zoho's number.
 
 - **Where you see it:** product stock in Swell, and the **Updates from Zoho** card on the Zoho page.
-- **Built with:** Zoho workflow rules with webhooks to the app page (`/webhooks/zoho/stock`), stored in the app collection `webhook-events` and processed by `webhook-event` (`webhook-event.created`); `webhook-maintenance` (cron, every 10 minutes) retries and cleans them up; `stock-adjusted` (`product.stock_adjusted`) resets Swell-side changes.
+- **Built with:** Zoho workflow rules with webhooks to the app's `zoho-webhook` function, stored in the app collection `webhook-events` and processed by `webhook-event` (`webhook-event.created`); `webhook-maintenance` (cron, every 10 minutes) retries and cleans them up; `stock-adjusted` (`product.stock_adjusted`) resets Swell-side changes.
 
 ### Shipments from Zoho
 
 When an order is shipped in Zoho, the Swell order gets a shipment with the carrier and tracking number, and Swell sends its shipping email if that notification is on. Partial shipments and tracking numbers added later are handled too.
 
 - **Where you see it:** **Fulfillment** on the Swell order.
-- **Built with:** a Zoho workflow rule on shipment orders with a webhook to `/webhooks/zoho/shipments`, processed by `webhook-event`; the shipment field `$app.zoho.zoho_shipment_id`.
+- **Built with:** a Zoho workflow rule on shipment orders with a webhook to the `zoho-webhook` function, processed by `webhook-event`; the shipment field `$app.zoho.zoho_shipment_id`.
 
 ### One-click Zoho rules
 
-The app reads the Zoho organization's workflow rules and shows, per Zoho module, whether the rule that sends updates to Swell is set up, missing or turned off. **Set up in Zoho** creates the missing ones. Manual setup steps and the webhook addresses are there too.
+The app reads the Zoho organization's workflow rules and shows, per Zoho module, whether the rule that sends updates to Swell is set up, missing, turned off or in need of an update. **Set up in Zoho** creates the missing ones and updates the others. Manual setup steps, with the address and headers to use, are there too.
+
+If you install the app again, the rules keep working: within a minute the app points them at the new installation by itself, then refreshes Swell stock from Zoho for every linked item, so changes made in between are not lost.
 
 - **Where you see it:** the **Updates from Zoho** card on the Zoho page.
-- **Built with:** the app page, through Zoho's webhook and workflow settings.
+- **Built with:** the app page, through Zoho's webhook and workflow settings; `product-backfill` (cron, every minute) for the update after a reinstall.
 
 ---
 
@@ -106,7 +108,7 @@ Both are on by default. Turning one off stops it from then on; nothing already i
 
 ### What the app asks Zoho for
 
-Read and write access to contacts, items, sales orders, invoices, customer payments and credit notes; read access to settings, packages and shipments; creating webhooks and workflow rules; and removing a payment from an invoice (only to undo a paid order that is canceled before shipping).
+Read and write access to contacts, items, sales orders, invoices, customer payments and credit notes; read access to settings, packages and shipments; creating webhooks and workflow rules, and updating the webhooks; and removing a payment from an invoice (only to undo a paid order that is canceled before shipping).
 
 ---
 
@@ -140,7 +142,8 @@ Read and write access to contacts, items, sales orders, invoices, customer payme
 
 **Environments**
 
-- Each Swell environment (test and live) has its own connection, settings and webhook addresses.
+- Each Swell environment (test and live) has its own connection, settings and webhook keys.
+- Installing the app again gives the Zoho page a new address. Before you press **Reconnect**, replace the redirect URI in the Zoho API Console with the new one; the Zoho page shows it and warns you. The Zoho rules are updated by the app itself.
 - Every Zoho data center is supported: US, EU, India, Australia, Japan, Canada, Saudi Arabia and UK.
 - Tested end to end in the test environment of the swell-apps store, with a Zoho Books + Inventory organization in the EU data center. Books-only organizations are covered by automated tests only.
 
@@ -168,4 +171,4 @@ swell inspect functions --app=.
 - The app page (`frontend/`) and the functions share the code in `functions/lib/`.
 - For a full connect test, register a Zoho API client whose redirect URI is the one shown on the Zoho page of the test store.
 
-**Where things are:** `functions/` (event, cron and shared code), `frontend/` (the Zoho page and webhook receiver), `models/` (app collections and order and shipment fields), `content/` (sidebar entry and order views), `settings/`, `test/unit/`, `assets/` (icon and screenshots). Architecture, design decisions and Zoho quirks are described in [DEVELOPMENT.md](DEVELOPMENT.md).
+**Where things are:** `functions/` (event, cron, the webhook route and shared code), `frontend/` (the Zoho page), `models/` (app collections and order and shipment fields), `content/` (sidebar entry and order views), `settings/`, `test/unit/`, `assets/` (icon and screenshots). Architecture, design decisions and Zoho quirks are described in [DEVELOPMENT.md](DEVELOPMENT.md).

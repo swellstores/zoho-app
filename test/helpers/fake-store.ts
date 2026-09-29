@@ -115,7 +115,7 @@ export function createFakeStore(
     settings: vi.fn(async () => settings),
   };
 
-  const ctx: AppContext = { swell, appId: "zoho", storeId: "swell-apps" };
+  const ctx: AppContext = { swell, appId: "zoho", storeId: "swell-apps", publicKey: PUBLIC_KEY };
   return {
     swell,
     ctx,
@@ -130,6 +130,9 @@ export function createFakeStore(
     shipments: () => collections["/shipments"],
   };
 }
+
+/** The install key functions and the app page get from the platform. */
+export const PUBLIC_KEY = "app_pk_test_install1";
 
 export const CONNECTED_INVENTORY = {
   status: "connected",
@@ -162,6 +165,8 @@ export function fakeZoho(
     workflows?: Doc[];
     /** The token has ZohoInventory.settings.CREATE */
     settingsCreate?: boolean;
+    /** The token has ZohoInventory.settings.UPDATE */
+    settingsUpdate?: boolean;
     fail?: (url: URL, init: RequestInit) => Response | undefined;
   } = {},
 ) {
@@ -359,6 +364,14 @@ export function fakeZoho(
       const workflow = { workflow_id: String(seq++), is_active: true, ...body() };
       workflows.push(workflow);
       return jsonResponse({ code: 0, workflow });
+    }
+    const webhookMatch = path.match(/^\/settings\/webhooks\/(\w+)$/);
+    if (webhookMatch && method === "PUT") {
+      if (!init.settingsUpdate) return jsonResponse({ code: 57, message: "You are not authorized to perform this operation" }, 401);
+      const webhook = webhooks.find((h) => h.webhook_id === webhookMatch[1]);
+      if (!webhook) return jsonResponse({ code: 1003, message: "Webhook does not exist" }, 404);
+      Object.assign(webhook, body());
+      return jsonResponse({ code: 0, webhook: { ...webhook } });
     }
     const shipmentMatch = path.match(/^\/shipmentorders\/(\w+)$/);
     if (shipmentMatch) {

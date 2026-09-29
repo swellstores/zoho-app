@@ -15,6 +15,8 @@ export interface AppContext {
   swell: SwellClient;
   appId: string;
   storeId: string;
+  /** This install's public key (`app_pk_…`); it changes when the app is installed again */
+  publicKey?: string | null;
 }
 
 /** A failure the merchant should see, with a stable code for the UI. */

@@ -122,6 +122,9 @@
   .rule-state.missing { color: var(--warn); }
   .rule-state.inactive { color: var(--danger); }
   .rule-state.working { color: var(--muted); }
+  .rule-state.outdated { color: var(--warn); }
+  .header-list { display: grid; gap: 8px; }
+  .header-list .copy-row .k { font-weight: 600; min-width: 120px; align-self: center; }
   .manual { display: grid; gap: 12px; margin-top: 10px; }
   ol.setup { margin: 10px 0 0; padding-left: 20px; color: var(--muted); display: grid; gap: 6px; }
   code.url { flex: 1 1 280px; min-width: 0; padding: 8px 10px; background: var(--soft); border-radius: 8px; overflow-wrap: anywhere; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -163,6 +166,14 @@
     <div id="currency-warning" class="callout warning" hidden>
       <strong>Currency mismatch</strong>
       <p id="currency-text"></p>
+    </div>
+    <div id="redirect-changed" class="callout warning" hidden>
+      <strong>This page has a new address</strong>
+      <p>The app was installed again, so Zoho's redirect URI is out of date. Nothing stops working now, but before you press <b>Reconnect</b>, open your client in the <a class="api-console-link" href="https://api-console.zoho.com" target="_blank" rel="noopener">Zoho API Console</a> and replace its Authorized Redirect URI with:</p>
+      <div class="copy-row">
+        <code id="redirect-new" class="url">—</code>
+        <button class="btn" data-copy="redirect-new">Copy</button>
+      </div>
     </div>
     <div id="books-only" class="callout info" hidden>
       <strong>Zoho Books only</strong>
@@ -242,9 +253,13 @@
     <p id="rules-summary" class="small muted" hidden></p>
     <div id="rules-reconnect" class="callout warning" hidden>
       <strong>One more permission needed</strong>
-      <p>Press <b>Reconnect</b> at the top of this page and approve access once more. Then Set up in Zoho can create the rules.</p>
+      <p>Press <b>Reconnect</b> at the top of this page and approve access once more. Then the app can set up and update the rules in Zoho.</p>
     </div>
     <div id="rules-error" class="callout danger" hidden></div>
+    <div id="stock-catchup" class="callout info" hidden>
+      <strong>Refreshing stock from Zoho</strong>
+      <p id="stock-catchup-text"></p>
+    </div>
     <div class="hooks">
       <div class="hook">
         <div class="hook-head">
@@ -278,21 +293,13 @@
     <details class="how">
       <summary>Set up by hand instead</summary>
       <div class="manual">
-        <p class="muted small">In Zoho Inventory, open <b>Settings → Automation → Workflow Rules</b> and add a rule for each module that is not set up: Workflow Type <b>Event Based</b>, Action Type <b>Created or Edited</b>, <b>Any field is updated</b>, <b>Edited each time</b>, criteria <b>No</b>, and as the immediate action a <b>New Webhook</b> with method <b>POST</b>, body <b>Default Payload</b> and one of these URLs:</p>
-        <div>
-          <p class="small"><b>Shipment orders</b></p>
-          <div class="copy-row">
-            <code id="hook-shipments-url" class="url">—</code>
-            <button class="btn" data-copy="hook-shipments-url">Copy</button>
-          </div>
+        <p class="muted small">In Zoho Inventory, open <b>Settings → Automation → Workflow Rules</b> and add a rule for each module that is not set up: Workflow Type <b>Event Based</b>, Action Type <b>Created or Edited</b>, <b>Any field is updated</b>, <b>Edited each time</b>, criteria <b>No</b>, and as the immediate action a <b>New Webhook</b> with method <b>POST</b>, body <b>Default Payload</b>, this URL and these headers:</p>
+        <div class="copy-row">
+          <code id="hook-url" class="url">—</code>
+          <button class="btn" data-copy="hook-url">Copy</button>
         </div>
-        <div>
-          <p class="small"><b>Every stock module</b></p>
-          <div class="copy-row">
-            <code id="hook-stock-url" class="url">—</code>
-            <button class="btn" data-copy="hook-stock-url">Copy</button>
-          </div>
-        </div>
+        <div id="hook-headers" class="header-list"></div>
+        <p id="hook-topic" class="muted small"></p>
       </div>
     </details>
   </section>
@@ -387,7 +394,13 @@
     if (s.api_console) {
       $("api-console").href = s.api_console;
       $("api-console-host").textContent = s.api_console.replace(/^https:\/\//, "");
+      document.querySelectorAll(".api-console-link").forEach((a) => { a.href = s.api_console; });
     }
+    // Zoho accepts only the redirect URI registered in its API Console, and
+    // this page's address changes when the app is installed again.
+    const redirectChanged = Boolean(connected && s.redirect_uri && s.callback_url && s.redirect_uri !== s.callback_url);
+    $("redirect-changed").hidden = !redirectChanged;
+    $("redirect-new").textContent = s.callback_url || "—";
     $("creds-state").innerHTML = s.credentials_configured ? '<span class="muted small">· saved ✓</span>' : "";
     $("step-creds").classList.toggle("done", Boolean(s.credentials_configured));
     $("connect").disabled = !s.credentials_configured;
@@ -497,8 +510,11 @@
     }));
   }
 
-  const RULE_TEXT = { ready: "✓ Set up", missing: "Not set up", inactive: "Turned off in Zoho", working: "Setting up…", failed: "Failed" };
+  const RULE_TEXT = { ready: "✓ Set up", missing: "Not set up", outdated: "Needs update", inactive: "Turned off in Zoho", working: "Setting up…", failed: "Failed" };
   let settingUp = false;
+  let needsReconnect = false;
+  // Missing rules, and webhooks that still have an old address or key.
+  const toDo = (rules) => rules.filter((r) => r.status === "missing" || (r.stale_webhook_ids || []).length);
 
   function lastCall(topic, lastAt) {
     const pill = $(`hook-${topic}-pill`);
@@ -535,9 +551,31 @@
     $("rules-error").textContent = w.error || w.rules_error || "";
     if (w.error) return;
 
-    const noUrl = "Open this page from the Swell dashboard to see it.";
-    $("hook-shipments-url").textContent = (w.urls && w.urls.shipments) || noUrl;
-    $("hook-stock-url").textContent = (w.urls && w.urls.stock) || noUrl;
+    const m = w.manual;
+    $("hook-url").textContent = m ? m.url : "Open this page from the Swell dashboard to see it.";
+    $("hook-headers").replaceChildren(...(m ? m.headers : []).map((h) => {
+      const row = document.createElement("div");
+      row.className = "copy-row";
+      const name = document.createElement("span");
+      name.className = "k";
+      name.textContent = h.name;
+      const value = document.createElement("code");
+      value.className = "url";
+      value.textContent = h.value;
+      const button = document.createElement("button");
+      button.className = "btn";
+      button.textContent = "Copy";
+      button.addEventListener("click", () => copyFrom(button, value));
+      row.append(name, value, button);
+      return row;
+    }));
+    $("hook-topic").textContent = m ? `And ${m.topic_header}: shipments for shipment orders, stock for every other module.` : "";
+    $("rules-reconnect").hidden = !(needsReconnect || w.repair_error === "needs_reconnect");
+    const catchup = w.stock_catchup && w.stock_catchup.status === "running" ? w.stock_catchup : null;
+    $("stock-catchup").hidden = !catchup;
+    $("stock-catchup-text").textContent = catchup
+      ? `The rules were sending to an old address, so some stock changes did not reach Swell. Swell stock is being set to Zoho's for every linked item${catchup.refreshed ? ` (${catchup.refreshed} so far)` : ""}.`
+      : "";
     lastCall("shipments", w.shipments.last_received_at);
     lastCall("stock", w.stock.last_received_at);
 
@@ -555,14 +593,22 @@
       ? "Swell stock changes only when you sync products. Stock received, adjusted or sold outside Swell stays out of date in Swell, so Swell can sell items Zoho no longer has."
       : `Changes from ${stockGaps.map((r) => r.label.toLowerCase()).join(", ")} don't reach Swell stock until then.`;
 
+    const todo = toDo(rules);
     const missing = rules.filter((r) => r.status === "missing").length;
+    const outdated = rules.filter((r) => r.status === "outdated").length;
     const inactive = rules.filter((r) => r.status === "inactive").length;
-    $("setup-rules").hidden = !w.rules || !missing;
-    $("setup-rules").textContent = missing === rules.length ? "Set up in Zoho" : `Set up ${missing} missing`;
+    $("setup-rules").hidden = !w.rules || !todo.length;
+    $("setup-rules").textContent = !missing ? `Update ${todo.length} in Zoho`
+      : missing === todo.length ? (missing === rules.length ? "Set up in Zoho" : `Set up ${missing} missing`)
+      : `Set up ${todo.length} in Zoho`;
     $("rules-summary").hidden = !w.rules;
     $("rules-summary").textContent = !w.rules ? ""
-      : !missing && !inactive ? `All ${rules.length} rules are set up in Zoho.`
-      : [missing && `${missing} of ${rules.length} rules are not set up yet.`, inactive && `${inactive} ${inactive === 1 ? "is" : "are"} turned off: turn ${inactive === 1 ? "it" : "them"} back on in Zoho under Settings → Automation → Workflow Rules.`].filter(Boolean).join(" ");
+      : !missing && !outdated && !inactive ? `All ${rules.length} rules are set up in Zoho.`
+      : [
+          missing && `${missing} of ${rules.length} rules are not set up yet.`,
+          outdated && `${outdated} still ${outdated === 1 ? "sends" : "send"} to an old address. The app updates ${outdated === 1 ? "it" : "them"} by itself within minutes, or press Update in Zoho.`,
+          inactive && `${inactive} ${inactive === 1 ? "is" : "are"} turned off: turn ${inactive === 1 ? "it" : "them"} back on in Zoho under Settings → Automation → Workflow Rules.`,
+        ].filter(Boolean).join(" ");
 
     $("webhook-failures").hidden = !w.failures.length;
     $("webhook-failure-list").replaceChildren(...w.failures.map((f) => {
@@ -588,9 +634,10 @@
     const button = $("setup-rules");
     button.disabled = true;
     showError("");
+    needsReconnect = false;
     $("rules-reconnect").hidden = true;
     try {
-      for (const rule of state.webhooks.rules.filter((r) => r.status === "missing")) {
+      for (const rule of toDo(state.webhooks.rules)) {
         setRowState(rule.entity, "working");
         try {
           const result = await api("/app-api/webhooks/setup", { entity: rule.entity });
@@ -598,6 +645,7 @@
         } catch (e) {
           setRowState(rule.entity, "failed");
           if (/Reconnect/i.test(e.message)) {
+            needsReconnect = true;
             $("rules-reconnect").hidden = false;
           } else {
             showError(`${rule.label}: ${e.message}`);

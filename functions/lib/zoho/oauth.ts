@@ -21,8 +21,10 @@ export const ZOHO_SCOPES = [
   'ZohoBooks.creditnotes.UPDATE',
   'ZohoBooks.creditnotes.READ',
   'ZohoInventory.settings.READ',
-  // Only to create this store's webhooks and workflow rules (Set up in Zoho).
+  // Only to create this store's webhooks and workflow rules (Set up in Zoho),
+  // and to point the webhooks at the new install key after a reinstall.
   'ZohoInventory.settings.CREATE',
+  'ZohoInventory.settings.UPDATE',
   'ZohoInventory.contacts.CREATE',
   'ZohoInventory.contacts.UPDATE',
   'ZohoInventory.contacts.READ',

@@ -13,6 +13,8 @@ export interface ProxyContext {
   adminUrl: string | null;
   /** `test`, `live` or a branch id */
   environment: string | null;
+  /** This install's public key; it changes when the app is installed again */
+  publicKey: string | null;
 }
 
 export function readProxyContext(c: Context): ProxyContext | null {
@@ -29,6 +31,7 @@ export function readProxyContext(c: Context): ProxyContext | null {
     pageHost: c.req.header("x-forwarded-host") ?? null,
     adminUrl: c.req.header("swell-admin-url") ?? null,
     environment: c.req.header("swell-environment-id") ?? null,
+    publicKey: c.req.header("swell-public-key") ?? null,
   };
 }
 
@@ -142,7 +145,7 @@ export function createSwellClient(proxy: ProxyContext): SwellClient {
 }
 
 export function appContext(proxy: ProxyContext): AppContext {
-  return { swell: createSwellClient(proxy), appId: proxy.appId, storeId: proxy.storeId };
+  return { swell: createSwellClient(proxy), appId: proxy.appId, storeId: proxy.storeId, publicKey: proxy.publicKey };
 }
 
 export function callbackUrl(proxy: ProxyContext): string | null {

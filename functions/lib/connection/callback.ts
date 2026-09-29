@@ -110,6 +110,9 @@ export async function completeConnect(ctx: AppContext, params: CallbackParams): 
     has_books: only?.books ?? false,
     has_inventory: only?.inventory ?? false,
     ...((only?.organization_id ?? null) !== (connection.organization_id ?? null) ? WEBHOOKS_UNSEEN : {}),
+    // New permissions may have been granted: the maintenance job checks the webhooks again.
+    webhook_repair_error: null,
+    webhook_checked_at: null,
     last_error: organizations.length
       ? null
       : `No Zoho Books or Zoho Inventory organization is available to this Zoho user. ${describeProblems(problems)}`.trim(),

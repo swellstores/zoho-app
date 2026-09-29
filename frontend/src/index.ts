@@ -5,8 +5,6 @@ import { startProductSync } from "../../functions/lib/products/backfill";
 import { getProductsStatus } from "../../functions/lib/products/status";
 import { getOrdersStatus, retryOrder } from "../../functions/lib/orders/status";
 import { AppError } from "../../functions/lib/swell-client";
-import { isWebhookTopic } from "../../functions/lib/webhooks/payload";
-import { receiveWebhook } from "../../functions/lib/webhooks/receive";
 import { getWebhooksStatus, setUpZohoRule } from "../../functions/lib/webhooks/status";
 import { renderCallbackPage } from "./callback-page";
 import { appContext, callbackUrl, dashboardUrl, hasAdminSession, readProxyContext, SwellApiError, type ProxyContext } from "./swell";
@@ -79,7 +77,7 @@ app.post(`${API}/status`, async (c) => {
     ? await Promise.all([
         section("products", () => getProductsStatus(ctx)),
         section("orders", () => getOrdersStatus(ctx)),
-        section("webhooks", () => getWebhooksStatus(ctx, proxy.pageHost)),
+        section("webhooks", () => getWebhooksStatus(ctx)),
       ])
     : [null, null, null];
   return c.json({ ...status, catalog, orders, webhooks, callback_url: callbackUrl(proxy) });
@@ -92,8 +90,7 @@ app.post(`${API}/orders/retry`, async (c) => {
 
 app.post(`${API}/webhooks/setup`, async (c) => {
   const { entity } = await c.req.json().catch(() => ({}) as any);
-  const proxy = c.get("proxy");
-  return c.json(await setUpZohoRule(appContext(proxy), proxy.pageHost, entity));
+  return c.json(await setUpZohoRule(appContext(c.get("proxy")), entity));
 });
 
 app.post(`${API}/products/sync`, async (c) => {
@@ -116,26 +113,6 @@ app.post(`${API}/organization`, async (c) => {
 
 app.post(`${API}/disconnect`, async (c) => {
   return c.json(await disconnect(appContext(c.get("proxy"))));
-});
-
-// Zoho workflow rules post here. The per-store token in the URL is what
-// authorizes the call; the body is stored and processed by the
-// webhook-event function, so Zoho gets its answer at once.
-const MAX_WEBHOOK_BODY = 1_000_000;
-
-app.post("/webhooks/zoho/:topic", async (c) => {
-  const proxy = readProxyContext(c);
-  if (!proxy) return apiError(c, 400, "no_proxy", "This URL must be reached through Swell.");
-  const topic = c.req.param("topic");
-  if (!isWebhookTopic(topic)) return apiError(c, 404, "unknown_topic", "Unknown webhook.");
-  if (Number(c.req.header("content-length") ?? 0) > MAX_WEBHOOK_BODY) {
-    return apiError(c, 413, "too_large", "The webhook body is too large.");
-  }
-  const body = await c.req.text();
-  const result = await receiveWebhook(appContext(proxy), topic, c.req.query("token"), body, c.req.header("content-type"));
-  console.log(JSON.stringify({ webhook: topic, source: result.source, check: result.check }));
-  c.header("cache-control", "no-store");
-  return c.json({ ok: true });
 });
 
 // Zoho redirects the merchant's browser here. The single-use `state` nonce

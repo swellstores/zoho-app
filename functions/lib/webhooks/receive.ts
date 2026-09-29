@@ -8,7 +8,7 @@ const EVENTS = '/webhook-events';
 // Enough for any single Zoho record; keeps a runaway body out of the store.
 const MAX_BODY = 200_000;
 
-/** The token in this store's webhook URLs, created on first use. */
+/** The token Zoho sends with every webhook call, created on first use. */
 export async function ensureWebhookSecret(ctx: AppContext, connection: Connection): Promise<string> {
   if (connection.webhook_secret) return connection.webhook_secret;
   const secret = createNonce();
@@ -17,8 +17,15 @@ export async function ensureWebhookSecret(ctx: AppContext, connection: Connectio
   return secret;
 }
 
-export function webhookUrl(pageHost: string, topic: WebhookTopic, secret: string): string {
-  return `https://${pageHost}/webhooks/zoho/${topic}?token=${secret}`;
+/**
+ * Zoho checks a webhook when it is saved: an empty `payload=` form call, or
+ * `{"payload": ""}` with a JSON body. It proves the address and token work;
+ * there is nothing to process.
+ */
+function isCheckCall(body: string, payload: Record<string, any>): boolean {
+  if (/^((payload|JSONString)=)?$/.test(body.trim())) return true;
+  const keys = Object.keys(payload);
+  return keys.length > 0 && keys.every((key) => (key === 'payload' || key === 'JSONString') && !payload[key]);
 }
 
 /**
@@ -39,9 +46,7 @@ export async function receiveWebhook(
 
   const payload = parseWebhookBody(body);
   const source = sourceModule(payload);
-  // Zoho checks a webhook when it is saved with an empty `payload=` call.
-  // It proves the URL and token work; there is nothing to process.
-  const check = /^((payload|JSONString)=)?$/.test(body.trim());
+  const check = isCheckCall(body, payload);
   if (!check) {
     await ctx.swell.post(EVENTS, {
       topic,

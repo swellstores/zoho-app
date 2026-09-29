@@ -148,7 +148,7 @@
     "webhook_secret": {
       "type": "string",
       "private": true,
-      "description": "Token in the webhook URLs given to Zoho"
+      "description": "Token Zoho sends in the X-Swell-Token header of every webhook call"
     },
     "webhook_shipments_at": {
       "type": "date",
@@ -162,6 +162,49 @@
       "type": "array",
       "value_type": "string",
       "description": "Zoho modules that have sent stock webhooks"
+    },
+    "webhook_public_key": {
+      "type": "string",
+      "description": "Public key of this install that the Zoho webhooks in webhook_current_ids send in their Authorization header"
+    },
+    "webhook_current_ids": {
+      "type": "array",
+      "value_type": "string",
+      "description": "Zoho webhooks that point at this store's webhook function with webhook_public_key"
+    },
+    "webhook_repair_error": {
+      "type": "string",
+      "description": "Why the Zoho webhooks could not be updated automatically, e.g. needs_reconnect; cleared on connect"
+    },
+    "webhook_checked_at": {
+      "type": "date",
+      "description": "Last time the maintenance job compared the Zoho webhooks with the current address and key"
+    },
+    "stock_catchup": {
+      "type": "object",
+      "description": "Stock refresh from Zoho for every linked item, run after the webhooks were down",
+      "fields": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "running",
+            "done"
+          ]
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Id of the last item link refreshed; links are walked in id order"
+        },
+        "refreshed": {
+          "type": "int"
+        },
+        "started_at": {
+          "type": "date"
+        },
+        "finished_at": {
+          "type": "date"
+        }
+      }
     }
   }
 }
