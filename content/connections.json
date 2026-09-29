@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.swell.store/content.json",
+  "collection": "connections",
+  "label": "Zoho",
+  "description": "Sidebar entry that opens the Zoho connection page of the app",
+  "fields": [],
+  "views": [
+    {
+      "id": "list",
+      "nav": {
+        "label": "Zoho",
+        "link": "frontend://"
+      }
+    }
+  ]
+}

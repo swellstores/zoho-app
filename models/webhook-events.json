@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json.swell.store/model.json",
+  "collection": "webhook-events",
+  "label": "Zoho webhook events",
+  "description": "Webhook calls received from Zoho. The frontend worker stores each call; the webhook-event function processes it.",
+  "fields": {
+    "topic": {
+      "type": "string",
+      "enum": [
+        "shipments",
+        "stock"
+      ],
+      "required": true
+    },
+    "source": {
+      "type": "string",
+      "description": "Zoho module the call came from, e.g. inventory_adjustment, shipmentorder"
+    },
+    "body": {
+      "type": "string",
+      "description": "The request body as received (JSON or form data)"
+    },
+    "content_type": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "received",
+        "processed",
+        "ignored",
+        "error"
+      ],
+      "default": "received"
+    },
+    "note": {
+      "type": "string",
+      "description": "What processing did, or why the call was ignored"
+    },
+    "error": {
+      "type": "string",
+      "description": "Why processing failed"
+    },
+    "pending_item_ids": {
+      "type": "array",
+      "value_type": "string",
+      "description": "Zoho items still to refresh when a run stopped at its time budget"
+    },
+    "attempts": {
+      "type": "int",
+      "default": 0,
+      "description": "Times the maintenance job retried this call"
+    },
+    "processed_at": {
+      "type": "date"
+    }
+  }
+}

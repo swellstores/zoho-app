@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json.swell.store/model.json",
+  "collection": "orders",
+  "description": "Zoho sync state of the order, stored under $app.zoho",
+  "fields": {
+    "zoho_status": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "pending",
+        "error"
+      ],
+      "description": "synced: everything the order's state calls for exists in Zoho; pending: partly done, continues shortly; error: see zoho_error"
+    },
+    "zoho_contact_id": {
+      "type": "string"
+    },
+    "zoho_salesorder_id": {
+      "type": "string"
+    },
+    "zoho_salesorder_number": {
+      "type": "string"
+    },
+    "zoho_salesorder_url": {
+      "type": "string"
+    },
+    "zoho_invoice_id": {
+      "type": "string"
+    },
+    "zoho_invoice_number": {
+      "type": "string"
+    },
+    "zoho_invoice_url": {
+      "type": "string"
+    },
+    "zoho_payment_id": {
+      "type": "string"
+    },
+    "zoho_salesorder_confirmed": {
+      "type": "bool",
+      "description": "The sales order was confirmed, so it reserves stock (Zoho creates it as a draft)"
+    },
+    "zoho_salesorder_voided": {
+      "type": "bool",
+      "description": "The sales order was voided in Zoho after the order was canceled unpaid"
+    },
+    "zoho_payment_unapplied": {
+      "type": "bool",
+      "description": "The payment was detached from the invoice so the invoice could be voided"
+    },
+    "zoho_invoice_voided": {
+      "type": "bool",
+      "description": "The invoice was voided after the order was canceled before shipping"
+    },
+    "zoho_creditnote_id": {
+      "type": "string"
+    },
+    "zoho_creditnote_number": {
+      "type": "string"
+    },
+    "zoho_creditnote_url": {
+      "type": "string"
+    },
+    "zoho_refund_id": {
+      "type": "string"
+    },
+    "zoho_error": {
+      "type": "string"
+    },
+    "zoho_synced_at": {
+      "type": "date"
+    },
+    "zoho_attempts": {
+      "type": "int",
+      "default": 0
+    },
+    "zoho_retry_at": {
+      "type": "date",
+      "description": "When the retry job tries a failed order again"
+    },
+    "zoho_continuations": {
+      "type": "int",
+      "default": 0,
+      "description": "Runs in a row that stopped at their time budget; order-continue stops chaining after a few"
+    },
+    "zoho_claimed_at": {
+      "type": "date",
+      "description": "Set when the order.submitted handler starts; order.paid waits for it to finish"
+    },
+    "zoho_shipping_claimed_at": {
+      "type": "date",
+      "description": "Set while a Zoho shipment update runs for this order; clears when it ends"
+    }
+  }
+}

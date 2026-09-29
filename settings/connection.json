@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json.swell.store/setting.json",
+  "label": "Step 1 · Zoho API client",
+  "description": "Register a Server-based Application once in the Zoho API Console of your data center, using the redirect URI shown on the Zoho page (sidebar → Zoho). Paste its Client ID and secret here, save, then press Connect on the Zoho page.",
+  "fields": [
+    {
+      "id": "data_center",
+      "label": "Zoho data center: the domain you sign in to Zoho at",
+      "description": "Where your Zoho account lives: the domain you sign in at.",
+      "type": "select",
+      "default": "us",
+      "options": [
+        { "value": "us", "label": "zoho.com · United States · API Console: api-console.zoho.com" },
+        { "value": "eu", "label": "zoho.eu · Europe · API Console: api-console.zoho.eu" },
+        { "value": "in", "label": "zoho.in · India · API Console: api-console.zoho.in" },
+        { "value": "au", "label": "zoho.com.au · Australia · API Console: api-console.zoho.com.au" },
+        { "value": "jp", "label": "zoho.jp · Japan · API Console: api-console.zoho.jp" },
+        { "value": "ca", "label": "zohocloud.ca · Canada · API Console: api-console.zohocloud.ca" },
+        { "value": "sa", "label": "zoho.sa · Saudi Arabia · API Console: api-console.zoho.sa" },
+        { "value": "uk", "label": "zoho.uk · United Kingdom · API Console: api-console.zoho.uk" }
+      ]
+    },
+    {
+      "type": "field_row",
+      "fields": [
+        {
+          "id": "client_id",
+          "label": "Client ID",
+          "description": "From your server-based client in the Zoho API Console.",
+          "placeholder": "1000.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+          "type": "short_text"
+        },
+        {
+          "id": "client_secret",
+          "label": "Client secret",
+          "description": "From the same client. Changing it later requires connecting again.",
+          "placeholder": "Shown next to the Client ID in the API Console",
+          "type": "short_text"
+        }
+      ]
+    }
+  ]
+}

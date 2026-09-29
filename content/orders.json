@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json.swell.store/content.json",
+  "collection": "orders",
+  "label": "Orders",
+  "description": "Zoho sync status on the order list and a Zoho tab on the order page",
+  "fields": [
+    {
+      "id": "zoho_status",
+      "label": "Zoho",
+      "type": "select",
+      "readonly": true,
+      "options": [
+        {
+          "value": "synced",
+          "label": "Synced"
+        },
+        {
+          "value": "pending",
+          "label": "In progress"
+        },
+        {
+          "value": "error",
+          "label": "Error"
+        }
+      ]
+    },
+    {
+      "id": "zoho_salesorder_number",
+      "label": "Sales order",
+      "type": "short_text",
+      "readonly": true
+    },
+    {
+      "id": "zoho_salesorder_url",
+      "label": "Sales order in Zoho",
+      "type": "url",
+      "readonly": true
+    },
+    {
+      "id": "zoho_invoice_number",
+      "label": "Invoice",
+      "type": "short_text",
+      "readonly": true
+    },
+    {
+      "id": "zoho_invoice_url",
+      "label": "Invoice in Zoho",
+      "type": "url",
+      "readonly": true
+    },
+    {
+      "id": "zoho_salesorder_voided",
+      "label": "Sales order voided",
+      "type": "boolean",
+      "readonly": true
+    },
+    {
+      "id": "zoho_invoice_voided",
+      "label": "Invoice voided",
+      "type": "boolean",
+      "readonly": true
+    },
+    {
+      "id": "zoho_creditnote_number",
+      "label": "Credit note",
+      "type": "short_text",
+      "readonly": true
+    },
+    {
+      "id": "zoho_creditnote_url",
+      "label": "Credit note in Zoho",
+      "type": "url",
+      "readonly": true
+    },
+    {
+      "id": "zoho_refund_id",
+      "label": "Refund recorded in Zoho",
+      "type": "short_text",
+      "readonly": true
+    },
+    {
+      "id": "zoho_error",
+      "label": "Last error",
+      "type": "long_text",
+      "readonly": true
+    },
+    {
+      "id": "zoho_synced_at",
+      "label": "Last synced",
+      "type": "datetime",
+      "readonly": true
+    }
+  ],
+  "views": [
+    {
+      "id": "list",
+      "fields": [
+        {
+          "id": "zoho_status"
+        }
+      ]
+    },
+    {
+      "id": "edit",
+      "tabs": [
+        {
+          "id": "zoho",
+          "label": "Zoho",
+          "fields": [
+            {
+              "id": "zoho_status"
+            },
+            {
+              "id": "zoho_error"
+            },
+            {
+              "type": "field_row",
+              "fields": [
+                {
+                  "id": "zoho_salesorder_number"
+                },
+                {
+                  "id": "zoho_salesorder_url"
+                }
+              ]
+            },
+            {
+              "type": "field_row",
+              "fields": [
+                {
+                  "id": "zoho_invoice_number"
+                },
+                {
+                  "id": "zoho_invoice_url"
+                }
+              ]
+            },
+            {
+              "type": "field_row",
+              "fields": [
+                {
+                  "id": "zoho_salesorder_voided"
+                },
+                {
+                  "id": "zoho_invoice_voided"
+                }
+              ]
+            },
+            {
+              "type": "field_row",
+              "fields": [
+                {
+                  "id": "zoho_creditnote_number"
+                },
+                {
+                  "id": "zoho_creditnote_url"
+                }
+              ]
+            },
+            {
+              "id": "zoho_refund_id"
+            },
+            {
+              "id": "zoho_synced_at"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.swell.store/model.json",
+  "collection": "contact-links",
+  "label": "Zoho contact links",
+  "description": "Which Zoho contact each Swell customer is linked to. Customers are linked when their first order syncs.",
+  "fields": {
+    "account_id": {
+      "type": "objectid",
+      "required": true
+    },
+    "account": {
+      "type": "link",
+      "model": "accounts",
+      "key": "account_id"
+    },
+    "email": {
+      "type": "string"
+    },
+    "zoho_contact_id": {
+      "type": "string"
+    },
+    "addresses": {
+      "type": "array",
+      "value_type": "object",
+      "description": "Shipping addresses already added to the Zoho contact, by fingerprint",
+      "fields": {
+        "fingerprint": { "type": "string" },
+        "address_id": { "type": "string" }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["synced", "error"]
+    },
+    "error": {
+      "type": "string"
+    },
+    "date_synced": {
+      "type": "date"
+    }
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json.swell.store/model.json",
+  "collection": "connections",
+  "label": "Zoho connections",
+  "description": "Zoho OAuth connection for this store: tokens, data center and selected organization. One record per store.",
+  "fields": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "disconnected",
+        "connected",
+        "error"
+      ],
+      "default": "disconnected"
+    },
+    "data_center": {
+      "type": "string",
+      "description": "Zoho location code reported on the OAuth redirect, e.g. us, eu, in"
+    },
+    "accounts_server": {
+      "type": "string",
+      "description": "Zoho accounts server of that data center, used for token exchange, refresh and revoke"
+    },
+    "api_domain": {
+      "type": "string",
+      "description": "Zoho API domain of that data center, base for every Books and Inventory call"
+    },
+    "access_token": {
+      "type": "string",
+      "private": true
+    },
+    "refresh_token": {
+      "type": "string",
+      "private": true
+    },
+    "token_expires_at": {
+      "type": "date"
+    },
+    "redirect_uri": {
+      "type": "string",
+      "description": "Callback URL sent with the last authorize request; token calls must repeat it exactly"
+    },
+    "oauth_nonce": {
+      "type": "string",
+      "private": true,
+      "description": "Single-use nonce of the pending authorize request"
+    },
+    "oauth_nonce_expires_at": {
+      "type": "date"
+    },
+    "organizations": {
+      "type": "array",
+      "value_type": "object",
+      "description": "Zoho organizations the connected user can access",
+      "fields": {
+        "organization_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "books": {
+          "type": "bool"
+        },
+        "inventory": {
+          "type": "bool"
+        },
+        "currency_code": {
+          "type": "string"
+        }
+      }
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "organization_name": {
+      "type": "string"
+    },
+    "organization_currency": {
+      "type": "string",
+      "description": "Currency of the chosen Zoho organization; amounts are sent to Zoho without conversion"
+    },
+    "has_books": {
+      "type": "bool",
+      "default": false
+    },
+    "has_inventory": {
+      "type": "bool",
+      "default": false
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "date_connected": {
+      "type": "date"
+    },
+    "location_id": {
+      "type": "string",
+      "description": "Zoho Inventory location that receives opening stock for items the app creates"
+    },
+    "product_sync": {
+      "type": "object",
+      "description": "Progress of the catalog sync started from the Zoho page",
+      "fields": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "idle",
+            "running",
+            "done"
+          ],
+          "default": "idle"
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Id of the last product processed; products are walked in id order"
+        },
+        "total": {
+          "type": "int"
+        },
+        "processed": {
+          "type": "int"
+        },
+        "created": {
+          "type": "int"
+        },
+        "linked": {
+          "type": "int"
+        },
+        "failed": {
+          "type": "int"
+        },
+        "started_at": {
+          "type": "date"
+        },
+        "finished_at": {
+          "type": "date"
+        },
+        "resume_at": {
+          "type": "date",
+          "description": "Paused until then after hitting a Zoho API limit"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "webhook_secret": {
+      "type": "string",
+      "private": true,
+      "description": "Token in the webhook URLs given to Zoho"
+    },
+    "webhook_shipments_at": {
+      "type": "date",
+      "description": "Last shipments webhook received"
+    },
+    "webhook_stock_at": {
+      "type": "date",
+      "description": "Last stock webhook received"
+    },
+    "webhook_stock_sources": {
+      "type": "array",
+      "value_type": "string",
+      "description": "Zoho modules that have sent stock webhooks"
+    }
+  }
+}

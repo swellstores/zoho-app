@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zoho</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f6f8; --card: #ffffff; --fg: #1b1f29; --muted: #667085; --line: #e4e7ec; --soft: #f2f4f7;
+    --accent: #2563eb; --accent-fg: #ffffff; --accent-soft: #eff4ff;
+    --ok: #16803c; --ok-soft: #ecfdf3;
+    --warn: #b54708; --warn-soft: #fffaeb; --warn-line: #fedf89;
+    --danger: #b42318; --danger-soft: #fef3f2; --danger-line: #fecdca;
+    --info-line: #c7d7fe;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141519; --card: #1c1e24; --fg: #e6e8ee; --muted: #9aa0ae; --line: #2b2f38; --soft: #252830;
+      --accent: #6e9bff; --accent-fg: #0b1020; --accent-soft: rgba(110, 155, 255, 0.10);
+      --ok: #47c27a; --ok-soft: rgba(71, 194, 122, 0.12);
+      --warn: #f5b451; --warn-soft: rgba(245, 180, 81, 0.10); --warn-line: rgba(245, 180, 81, 0.35);
+      --danger: #f97066; --danger-soft: rgba(249, 112, 102, 0.10); --danger-line: rgba(249, 112, 102, 0.35);
+      --info-line: rgba(110, 155, 255, 0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); -webkit-font-smoothing: antialiased; }
+  main { max-width: 880px; margin: 0 auto; padding: 28px 16px 56px; display: grid; gap: 16px; }
+  h1 { font-size: 20px; line-height: 1.3; font-weight: 650; margin: 0; }
+  h2 { font-size: 15px; font-weight: 600; margin: 0; }
+  h3 { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  [hidden] { display: none !important; }
+
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .subtitle { color: var(--muted); margin-top: 4px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--soft); color: var(--muted); white-space: nowrap; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.connected { background: var(--ok-soft); color: var(--ok); }
+  .pill.error { background: var(--danger-soft); color: var(--danger); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; display: grid; gap: 16px; }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 16px; flex-wrap: wrap; }
+  .card-head > div:first-child { min-width: 0; flex: 1 1 320px; display: grid; gap: 4px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .org { font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+
+  .btn { font: inherit; font-weight: 600; font-size: 13px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; white-space: nowrap; }
+  .btn:hover:not(:disabled) { background: var(--soft); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+  .btn-danger { color: var(--danger); }
+  .btn:disabled { opacity: 0.55; cursor: default; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px; background: var(--soft); font-size: 13px; }
+  .chip .k { color: var(--muted); }
+  .chip.yes { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+  .chip.no { color: var(--muted); }
+
+  .callout { border: 1px solid var(--line); border-left-width: 3px; border-radius: 8px; padding: 10px 14px; display: grid; gap: 2px; }
+  .callout strong { font-size: 13px; }
+  .callout p { color: var(--fg); opacity: 0.9; }
+  .callout.warning { background: var(--warn-soft); border-color: var(--warn-line); border-left-color: var(--warn); }
+  .callout.warning strong { color: var(--warn); }
+  .callout.danger { background: var(--danger-soft); border-color: var(--danger-line); border-left-color: var(--danger); color: var(--danger); }
+  .callout.info { background: var(--accent-soft); border-color: var(--info-line); border-left-color: var(--accent); }
+
+  .picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  select { font: inherit; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); max-width: 100%; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .stat { background: var(--soft); border-radius: 10px; padding: 12px 14px; }
+  .stat-value { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stat.bad .stat-value { color: var(--danger); }
+  .stats.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rows li.with-action { grid-template-columns: 1fr auto; align-items: center; column-gap: 12px; }
+  .rows li.with-action > div { display: grid; gap: 2px; min-width: 0; }
+  .rows .when { color: var(--muted); font-size: 12px; }
+
+  .progress { height: 6px; border-radius: 999px; background: var(--soft); overflow: hidden; }
+  .progress .bar { height: 100%; width: 0; background: var(--accent); border-radius: inherit; transition: width 0.4s ease; }
+  .progress.indeterminate .bar { width: 30%; animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+
+  .rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; }
+  .rows li { padding: 10px 14px; display: grid; gap: 2px; }
+  .rows li + li { border-top: 1px solid var(--line); }
+  .rows .name { font-weight: 600; overflow-wrap: anywhere; }
+  .rows .sku { color: var(--muted); font-weight: 400; }
+  .rows .why { color: var(--danger); font-size: 13px; overflow-wrap: anywhere; }
+
+  details.how { border-top: 1px solid var(--line); padding-top: 12px; }
+  details.how summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px; }
+  details.how ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+  .steps li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 650; font-size: 13px; }
+  .steps li.done .step-num { background: var(--ok-soft); color: var(--ok); }
+  .step-body { display: grid; gap: 6px; min-width: 0; padding-top: 3px; }
+  .step-body strong { font-weight: 600; }
+  .copy-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+  .hooks { display: grid; gap: 12px; }
+  .hook { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
+  .hook-head { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+  .hook-head strong { font-size: 14px; }
+  .chip.seen { background: var(--ok-soft); color: var(--ok); }
+  .rule-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; }
+  .rule-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 12px; font-size: 13px; }
+  .rule-list li + li { border-top: 1px solid var(--line); }
+  .rule-state { font-weight: 600; white-space: nowrap; }
+  .rule-state.ready { color: var(--ok); }
+  .rule-state.missing { color: var(--warn); }
+  .rule-state.inactive { color: var(--danger); }
+  .rule-state.working { color: var(--muted); }
+  .manual { display: grid; gap: 12px; margin-top: 10px; }
+  ol.setup { margin: 10px 0 0; padding-left: 20px; color: var(--muted); display: grid; gap: 6px; }
+  code.url { flex: 1 1 280px; min-width: 0; padding: 8px 10px; background: var(--soft); border-radius: 8px; overflow-wrap: anywhere; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <header class="page-head">
+    <div>
+      <h1>Zoho Books &amp; Inventory</h1>
+      <p class="subtitle">Keep your Swell catalog, stock and orders in sync with Zoho.</p>
+    </div>
+    <span id="badge" class="pill">Loading…</span>
+  </header>
+
+  <div id="fatal" class="callout danger" hidden></div>
+
+  <section id="connected" class="card" hidden>
+    <div class="card-head">
+      <div>
+        <span class="eyebrow">Zoho organization</span>
+        <span id="org-name" class="org">—</span>
+      </div>
+      <div class="actions">
+        <button id="reconnect" class="btn">Reconnect</button>
+        <button id="disconnect" class="btn btn-danger">Disconnect</button>
+      </div>
+    </div>
+    <div class="chips">
+      <span id="has-books" class="chip"></span>
+      <span id="has-inventory" class="chip"></span>
+      <span class="chip"><span class="k">Data center</span><span id="dc"></span></span>
+      <span class="chip"><span class="k">Connected</span><span id="since"></span></span>
+    </div>
+    <div id="org-picker" class="picker" hidden>
+      <select id="org-select" aria-label="Zoho organization"></select>
+      <button id="org-save" class="btn btn-primary">Use this organization</button>
+    </div>
+    <div id="currency-warning" class="callout warning" hidden>
+      <strong>Currency mismatch</strong>
+      <p id="currency-text"></p>
+    </div>
+    <div id="books-only" class="callout info" hidden>
+      <strong>Zoho Books only</strong>
+      <p>This organization has no Zoho Inventory, so stock and fulfilment sync are off. Contacts, items and invoices sync to Zoho Books.</p>
+    </div>
+  </section>
+
+  <section id="products" class="card" hidden>
+    <div class="card-head">
+      <div>
+        <h2>Products</h2>
+        <p id="products-explain" class="muted"></p>
+      </div>
+      <div class="actions">
+        <button id="sync-products" class="btn btn-primary">Sync products</button>
+      </div>
+    </div>
+    <div id="sync-progress" class="progress" hidden><div id="sync-bar" class="bar"></div></div>
+    <div class="stats">
+      <div class="stat"><div id="stat-processed" class="stat-value">0</div><div class="stat-label">Products checked</div></div>
+      <div class="stat"><div id="stat-created" class="stat-value">0</div><div class="stat-label">Created in Zoho</div></div>
+      <div class="stat"><div id="stat-linked" class="stat-value">0</div><div class="stat-label">Linked to existing</div></div>
+      <div id="stat-failed-tile" class="stat"><div id="stat-failed" class="stat-value">0</div><div class="stat-label">Failed</div></div>
+    </div>
+    <p id="sync-state" class="muted small"></p>
+    <div id="sync-note" class="callout info" hidden></div>
+    <div id="untracked" class="callout warning" hidden>
+      <strong>Swell can sell more than Zoho has</strong>
+      <p id="untracked-text"></p>
+    </div>
+    <div id="failures" hidden>
+      <h3>Not synced</h3>
+      <ul id="failure-list" class="rows"></ul>
+    </div>
+    <details class="how">
+      <summary>How matching works</summary>
+      <ul id="products-rules"></ul>
+    </details>
+  </section>
+
+  <section id="orders" class="card" hidden>
+    <div class="card-head">
+      <div>
+        <h2>Orders</h2>
+        <p id="orders-explain" class="muted"></p>
+      </div>
+    </div>
+    <div class="stats two">
+      <div class="stat"><div id="stat-orders-synced" class="stat-value">0</div><div class="stat-label">Orders in Zoho</div></div>
+      <div id="stat-orders-failed-tile" class="stat"><div id="stat-orders-failed" class="stat-value">0</div><div class="stat-label">Waiting to retry</div></div>
+    </div>
+    <p id="orders-state" class="muted small"></p>
+    <div class="callout info">
+      <strong>Customers</strong>
+      <p>A customer is added to Zoho as a contact when their first order syncs, matched by email. Customers who have never ordered are not sent to Zoho.</p>
+    </div>
+    <div id="order-failures" hidden>
+      <h3>Not synced</h3>
+      <ul id="order-failure-list" class="rows"></ul>
+    </div>
+    <details class="how">
+      <summary>What gets sent</summary>
+      <ul id="orders-rules"></ul>
+    </details>
+  </section>
+
+  <section id="webhooks" class="card" hidden>
+    <div class="card-head">
+      <div>
+        <h2>Updates from Zoho</h2>
+        <p class="muted">Zoho sends shipments and stock changes to Swell through workflow rules, one per Zoho module. The app can create them for you.</p>
+      </div>
+      <div class="actions">
+        <button id="setup-rules" class="btn btn-primary" hidden>Set up in Zoho</button>
+      </div>
+    </div>
+    <p id="rules-summary" class="small muted" hidden></p>
+    <div id="rules-reconnect" class="callout warning" hidden>
+      <strong>One more permission needed</strong>
+      <p>Press <b>Reconnect</b> at the top of this page and approve access once more. Then Set up in Zoho can create the rules.</p>
+    </div>
+    <div id="rules-error" class="callout danger" hidden></div>
+    <div class="hooks">
+      <div class="hook">
+        <div class="hook-head">
+          <strong>Shipments</strong>
+          <span id="hook-shipments-pill" class="pill"></span>
+        </div>
+        <p class="muted small">Shipping an order in Zoho adds a shipment to the Swell order, with the tracking number and carrier.</p>
+        <ul id="rules-shipments" class="rule-list"></ul>
+        <div id="hook-shipments-missing" class="callout warning" hidden>
+          <strong>Until this is set up</strong>
+          <p>Orders you ship in Zoho stay unfulfilled in Swell, and customers get no shipping email from Swell.</p>
+        </div>
+      </div>
+      <div class="hook">
+        <div class="hook-head">
+          <strong>Stock</strong>
+          <span id="hook-stock-pill" class="pill"></span>
+        </div>
+        <p class="muted small">When stock changes in Zoho, the Swell stock of the items involved is set to Zoho's available-for-sale quantity.</p>
+        <ul id="rules-stock" class="rule-list"></ul>
+        <div id="hook-stock-missing" class="callout warning" hidden>
+          <strong>Until this is set up</strong>
+          <p id="hook-stock-missing-text"></p>
+        </div>
+      </div>
+    </div>
+    <div id="webhook-failures" hidden>
+      <h3>Could not process</h3>
+      <ul id="webhook-failure-list" class="rows"></ul>
+    </div>
+    <details class="how">
+      <summary>Set up by hand instead</summary>
+      <div class="manual">
+        <p class="muted small">In Zoho Inventory, open <b>Settings → Automation → Workflow Rules</b> and add a rule for each module that is not set up: Workflow Type <b>Event Based</b>, Action Type <b>Created or Edited</b>, <b>Any field is updated</b>, <b>Edited each time</b>, criteria <b>No</b>, and as the immediate action a <b>New Webhook</b> with method <b>POST</b>, body <b>Default Payload</b> and one of these URLs:</p>
+        <div>
+          <p class="small"><b>Shipment orders</b></p>
+          <div class="copy-row">
+            <code id="hook-shipments-url" class="url">—</code>
+            <button class="btn" data-copy="hook-shipments-url">Copy</button>
+          </div>
+        </div>
+        <div>
+          <p class="small"><b>Every stock module</b></p>
+          <div class="copy-row">
+            <code id="hook-stock-url" class="url">—</code>
+            <button class="btn" data-copy="hook-stock-url">Copy</button>
+          </div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section id="setup" class="card" hidden>
+    <div class="card-head">
+      <div>
+        <h2>Connect your Zoho account</h2>
+        <p class="muted">A one-time setup of about ten minutes.</p>
+      </div>
+    </div>
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <div class="step-body">
+          <strong>Register a Zoho API client</strong>
+          <p class="muted">Open the <a id="api-console" href="https://api-console.zoho.com" target="_blank" rel="noopener">Zoho API Console</a> for your data center (<span id="api-console-host">api-console.zoho.com</span>). If you sign in to Zoho at another domain, choose it first in the app settings (step 2).</p>
+          <p class="muted">Choose <b>Add Client → Server-based Applications</b>. Any name works, the homepage can be your store's URL, and this is the <b>Authorized Redirect URI</b>:</p>
+          <div class="copy-row">
+            <code id="callback" class="url">—</code>
+            <button id="copy" class="btn">Copy</button>
+          </div>
+        </div>
+      </li>
+      <li id="step-creds">
+        <span class="step-num">2</span>
+        <div class="step-body">
+          <strong>Paste the credentials in the app settings <span id="creds-state"></span></strong>
+          <p class="muted">In Swell, open <b>Apps → Zoho → Settings</b>. Under <b>Step 1 · Zoho API client</b>, check the data center and paste the client's <b>Client ID</b> and <b>Client secret</b>, then press <b>Save settings</b>.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <div class="step-body">
+          <strong>Connect</strong>
+          <p class="muted">Zoho opens in a new tab: sign in, approve access, and come back here.</p>
+          <div class="copy-row">
+            <button id="connect" class="btn btn-primary">Connect to Zoho</button>
+          </div>
+          <p id="connect-hint" class="muted small"></p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <div id="error" class="callout danger" hidden></div>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const DC_NAMES = { us: "zoho.com", eu: "zoho.eu", in: "zoho.in", au: "zoho.com.au", jp: "zoho.jp", ca: "zohocloud.ca", sa: "zoho.sa", uk: "zoho.uk" };
+  const DATE = { dateStyle: "medium", timeStyle: "short" };
+  let state = null;
+  let pollTimer = null;
+  let refreshTimer = null;
+
+  async function api(path, body) {
+    const res = await fetch(path, body === undefined ? {} : {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((data && data.error && data.error.message) || `Request failed (${res.status})`);
+    return data;
+  }
+
+  function when(value) {
+    return value ? new Date(value).toLocaleString(undefined, DATE) : "—";
+  }
+
+  function showError(message) {
+    $("error").textContent = message || "";
+    $("error").hidden = !message;
+  }
+
+  function productChip(el, label, available) {
+    el.textContent = available ? `✓ ${label}` : `No ${label}`;
+    el.className = `chip ${available ? "yes" : "no"}`;
+  }
+
+  function render(s) {
+    state = s;
+    const connected = s.status === "connected";
+    const badge = $("badge");
+    badge.className = `pill ${s.status}`;
+    badge.textContent = connected ? "Connected" : s.status === "error" ? "Needs attention" : "Not connected";
+
+    $("connected").hidden = !connected;
+    $("setup").hidden = connected;
+    $("callback").textContent = s.callback_url || "Open this page from the Swell dashboard to see it.";
+    if (s.api_console) {
+      $("api-console").href = s.api_console;
+      $("api-console-host").textContent = s.api_console.replace(/^https:\/\//, "");
+    }
+    $("creds-state").innerHTML = s.credentials_configured ? '<span class="muted small">· saved ✓</span>' : "";
+    $("step-creds").classList.toggle("done", Boolean(s.credentials_configured));
+    $("connect").disabled = !s.credentials_configured;
+    $("connect-hint").textContent = s.credentials_configured ? "" : "Save the credentials in the app settings first (step 2).";
+
+    if (connected) {
+      $("org-name").textContent = s.organization ? s.organization.name : "Choose an organization";
+      productChip($("has-books"), "Zoho Books", s.products.books);
+      productChip($("has-inventory"), "Zoho Inventory", s.products.inventory);
+      $("dc").textContent = DC_NAMES[s.data_center] || s.data_center || "—";
+      $("since").textContent = when(s.date_connected);
+      $("books-only").hidden = !(s.organization && s.products.books && !s.products.inventory);
+
+      const orgCurrency = s.organization && s.organization.currency;
+      const mismatch = Boolean(orgCurrency && s.store_currency && orgCurrency !== s.store_currency);
+      $("currency-warning").hidden = !mismatch;
+      $("currency-text").textContent = mismatch
+        ? `Zoho keeps ${s.organization.name}'s books in ${orgCurrency}, but this store sells in ${s.store_currency}. Amounts are sent to Zoho as they are, without conversion, so prices in Zoho will be wrong. Use the same currency in both.`
+        : "";
+
+      const pick = s.organizations.length > 1 || !s.organization;
+      $("org-picker").hidden = !pick || !s.organizations.length;
+      $("org-select").replaceChildren(...s.organizations.map((o) => {
+        const opt = document.createElement("option");
+        const products = [o.books && "Books", o.inventory && "Inventory"].filter(Boolean).join(" + ");
+        opt.value = o.organization_id;
+        opt.textContent = `${o.name} (${products})`;
+        opt.selected = Boolean(s.organization && s.organization.id === o.organization_id);
+        return opt;
+      }));
+    }
+    renderCatalog(s);
+    renderOrders(s);
+    renderWebhooks(s);
+    showError(s.last_error);
+  }
+
+  function orderRules(inventory) {
+    return [
+      inventory
+        ? "A placed order becomes a Zoho sales order, which reserves the stock. When it is paid, an invoice is created from it and the payment is recorded."
+        : "A paid order becomes a Zoho Books invoice, and the payment is recorded.",
+      "Lines use the linked Zoho items, created on the way if missing. Bundles and gift cards become text lines.",
+      "Each line's tax is matched to a Zoho tax with the same rate. If Zoho has none, the order waits with an error until you create it.",
+      "Line discounts and shipping are included. Amounts are sent without currency conversion.",
+      "Failed orders are retried automatically, less often each time, or right away with Retry now.",
+      inventory
+        ? "An order canceled before payment voids its sales order, which releases the reserved stock."
+        : "An order canceled before payment never reached Zoho, so nothing changes there.",
+      "A paid order canceled before anything shipped is undone: the payment is removed, the invoice and sales order are voided. Stock ends up as if the order never happened, and the refund in Swell needs no entry in Zoho.",
+      "A shipped order that is canceled or fully refunded gets a money-only credit note and a refund of it. No stock moves; goods that come back are received in Zoho as usual.",
+      "Partial refunds are not sent to Zoho yet.",
+    ];
+  }
+
+  function renderOrders(s) {
+    const o = s.status === "connected" && s.organization ? s.orders : null;
+    $("orders").hidden = !o;
+    if (!o) return;
+    if (o.error) {
+      $("orders-state").textContent = o.error;
+      return;
+    }
+    const inventory = s.products.inventory;
+
+    $("orders-explain").textContent = inventory
+      ? "Placed orders become sales orders; paid orders get an invoice and a payment."
+      : "Paid orders become invoices with a recorded payment.";
+    $("orders-rules").replaceChildren(...orderRules(inventory).map((text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      return li;
+    }));
+
+    $("stat-orders-synced").textContent = String(o.synced);
+    $("stat-orders-failed").textContent = String(o.failed);
+    $("stat-orders-failed-tile").classList.toggle("bad", Boolean(o.failed));
+    $("orders-state").textContent = o.sync_enabled
+      ? "New orders sync on their own. Orders placed before connecting are not sent."
+      : "Order sync is turned off in the app settings.";
+
+    $("order-failures").hidden = !o.failures.length;
+    $("order-failure-list").replaceChildren(...o.failures.map((f) => {
+      const li = document.createElement("li");
+      li.className = "with-action";
+      const text = document.createElement("div");
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = `Order #${f.number}`;
+      const why = document.createElement("span");
+      why.className = "why";
+      why.textContent = f.error || "Unknown error";
+      const next = document.createElement("span");
+      next.className = "when";
+      next.textContent = f.retry_at ? `Next automatic retry ${when(f.retry_at)}` : "";
+      text.append(name, why, next);
+      const button = document.createElement("button");
+      button.className = "btn";
+      button.textContent = "Retry now";
+      button.addEventListener("click", () =>
+        run(button, async () => {
+          await api("/app-api/orders/retry", { order_id: f.order_id });
+          return api("/app-api/status", {});
+        }));
+      li.append(text, button);
+      return li;
+    }));
+  }
+
+  const RULE_TEXT = { ready: "✓ Set up", missing: "Not set up", inactive: "Turned off in Zoho", working: "Setting up…", failed: "Failed" };
+  let settingUp = false;
+
+  function lastCall(topic, lastAt) {
+    const pill = $(`hook-${topic}-pill`);
+    pill.className = `pill ${lastAt ? "connected" : ""}`;
+    pill.textContent = lastAt ? `Last call ${when(lastAt)}` : "No calls yet";
+  }
+
+  function ruleRows(listId, rules) {
+    $(listId).replaceChildren(...rules.map((r) => {
+      const li = document.createElement("li");
+      li.dataset.entity = r.entity;
+      const name = document.createElement("span");
+      name.textContent = r.label;
+      const state = document.createElement("span");
+      state.className = `rule-state ${r.status}`;
+      state.textContent = RULE_TEXT[r.status] || r.status;
+      li.append(name, state);
+      return li;
+    }));
+  }
+
+  function setRowState(entity, status) {
+    const row = document.querySelector(`.rule-list li[data-entity="${entity}"] .rule-state`);
+    if (!row) return;
+    row.className = `rule-state ${status === "failed" ? "inactive" : status}`;
+    row.textContent = RULE_TEXT[status] || status;
+  }
+
+  function renderWebhooks(s) {
+    const w = s.status === "connected" && s.organization && s.products.inventory ? s.webhooks : null;
+    $("webhooks").hidden = !w;
+    if (!w) return;
+    $("rules-error").hidden = !(w.error || w.rules_error);
+    $("rules-error").textContent = w.error || w.rules_error || "";
+    if (w.error) return;
+
+    const noUrl = "Open this page from the Swell dashboard to see it.";
+    $("hook-shipments-url").textContent = (w.urls && w.urls.shipments) || noUrl;
+    $("hook-stock-url").textContent = (w.urls && w.urls.stock) || noUrl;
+    lastCall("shipments", w.shipments.last_received_at);
+    lastCall("stock", w.stock.last_received_at);
+
+    const rules = w.rules || [];
+    const shipments = rules.filter((r) => r.topic === "shipments");
+    const stock = rules.filter((r) => r.topic === "stock");
+    ruleRows("rules-shipments", shipments);
+    ruleRows("rules-stock", stock);
+
+    const notReady = (list) => list.filter((r) => r.status !== "ready");
+    $("hook-shipments-missing").hidden = !w.rules || !notReady(shipments).length;
+    const stockGaps = notReady(stock);
+    $("hook-stock-missing").hidden = !w.rules || !stockGaps.length;
+    $("hook-stock-missing-text").textContent = stockGaps.length === stock.length
+      ? "Swell stock changes only when you sync products. Stock received, adjusted or sold outside Swell stays out of date in Swell, so Swell can sell items Zoho no longer has."
+      : `Changes from ${stockGaps.map((r) => r.label.toLowerCase()).join(", ")} don't reach Swell stock until then.`;
+
+    const missing = rules.filter((r) => r.status === "missing").length;
+    const inactive = rules.filter((r) => r.status === "inactive").length;
+    $("setup-rules").hidden = !w.rules || !missing;
+    $("setup-rules").textContent = missing === rules.length ? "Set up in Zoho" : `Set up ${missing} missing`;
+    $("rules-summary").hidden = !w.rules;
+    $("rules-summary").textContent = !w.rules ? ""
+      : !missing && !inactive ? `All ${rules.length} rules are set up in Zoho.`
+      : [missing && `${missing} of ${rules.length} rules are not set up yet.`, inactive && `${inactive} ${inactive === 1 ? "is" : "are"} turned off: turn ${inactive === 1 ? "it" : "them"} back on in Zoho under Settings → Automation → Workflow Rules.`].filter(Boolean).join(" ");
+
+    $("webhook-failures").hidden = !w.failures.length;
+    $("webhook-failure-list").replaceChildren(...w.failures.map((f) => {
+      const li = document.createElement("li");
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = `${f.topic === "shipments" ? "Shipment" : "Stock change"}${f.source ? ` from ${f.source}` : ""}`;
+      const why = document.createElement("span");
+      why.className = "why";
+      why.textContent = f.error || "Unknown error";
+      const at = document.createElement("span");
+      at.className = "when";
+      at.textContent = when(f.date_created);
+      li.append(name, why, at);
+      return li;
+    }));
+  }
+
+  // One module per request, so each row shows its progress.
+  async function setUpRules() {
+    if (settingUp || !state || !state.webhooks || !state.webhooks.rules) return;
+    settingUp = true;
+    const button = $("setup-rules");
+    button.disabled = true;
+    showError("");
+    $("rules-reconnect").hidden = true;
+    try {
+      for (const rule of state.webhooks.rules.filter((r) => r.status === "missing")) {
+        setRowState(rule.entity, "working");
+        try {
+          const result = await api("/app-api/webhooks/setup", { entity: rule.entity });
+          setRowState(rule.entity, result.status);
+        } catch (e) {
+          setRowState(rule.entity, "failed");
+          if (/Reconnect/i.test(e.message)) {
+            $("rules-reconnect").hidden = false;
+          } else {
+            showError(`${rule.label}: ${e.message}`);
+          }
+          break;
+        }
+      }
+      render(await api("/app-api/status", {}));
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      settingUp = false;
+      button.disabled = false;
+    }
+  }
+
+  function rulesFor(inventory) {
+    const rules = [
+      "A Swell product or variant is linked to the Zoho item with the same SKU. Without a SKU, it is linked only when exactly one Zoho item has exactly the same name.",
+      "Items that already exist in Zoho are linked without being changed.",
+      "Missing items are created for active products. Each variant becomes its own item, named “Product — Variant”.",
+      "Later edits to a product's name, SKU, price or status in Swell are sent to its Zoho item.",
+    ];
+    if (inventory) {
+      rules.push("Zoho owns stock: for items Zoho Inventory tracks, the Swell stock level is replaced with Zoho's. New items start with Swell's stock.");
+      rules.push("Later stock changes in Zoho reach Swell through Zoho workflow rules (see Updates from Zoho). Units sold in Swell that Zoho has not recorded yet are held back.");
+      rules.push("Stock changes made in Swell outside orders, such as returns put back to stock or manual adjustments, are replaced with Zoho's level within seconds. Make them in Zoho; returned goods count again once Zoho receives them.");
+    }
+    rules.push("Bundles and gift cards are not synced.");
+    return rules;
+  }
+
+  function renderCatalog(s) {
+    const c = s.status === "connected" && s.organization ? s.catalog : null;
+    $("products").hidden = !c;
+    clearTimeout(refreshTimer);
+    if (!c) return;
+    if (c.error) {
+      $("sync-state").textContent = c.error;
+      return;
+    }
+
+    const inventory = s.products.inventory;
+    const job = c.job || { status: "idle" };
+    const running = job.status === "running";
+
+    $("products-explain").textContent = inventory
+      ? "Every Swell product and variant is linked to a Zoho item. Zoho owns stock."
+      : "Every Swell product and variant is linked to a Zoho Books item.";
+    $("products-rules").replaceChildren(...rulesFor(inventory).map((text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      return li;
+    }));
+
+    const button = $("sync-products");
+    button.disabled = running || !c.sync_enabled;
+    button.textContent = running ? "Syncing…" : job.status === "done" ? "Sync again" : "Sync products";
+
+    $("stat-processed").textContent = job.total ? `${job.processed || 0} / ${job.total}` : String(job.processed || 0);
+    $("stat-created").textContent = String(job.created || 0);
+    $("stat-linked").textContent = String(job.linked || 0);
+    $("stat-failed").textContent = String(job.failed || 0);
+    $("stat-failed-tile").classList.toggle("bad", Boolean(job.failed));
+
+    const progress = $("sync-progress");
+    progress.hidden = !running;
+    progress.classList.toggle("indeterminate", running && !job.processed);
+    $("sync-bar").style.width = running && job.processed && job.total
+      ? `${Math.min(100, Math.round((job.processed / job.total) * 100))}%`
+      : "";
+
+    $("sync-state").textContent = !c.sync_enabled
+      ? "Product sync is turned off in the app settings."
+      : running && !job.processed
+        ? "Starting… the first batch runs within a minute."
+        : running
+          ? `Syncing — ${job.processed} of ${job.total || 0} products checked.`
+          : job.status === "done"
+            ? `Last full sync finished ${when(job.finished_at)}. New and edited products sync on their own.`
+            : "Not synced yet. New and edited products sync on their own; use Sync products for the existing catalog.";
+
+    $("sync-note").textContent = job.note || "";
+    $("sync-note").hidden = !job.note;
+
+    $("untracked").hidden = !c.untracked_in_swell;
+    $("untracked-text").textContent = c.untracked_in_swell
+      ? `${c.untracked_in_swell} linked ${c.untracked_in_swell === 1 ? "item is" : "items are"} tracked in Zoho Inventory but not in Swell. Turn on stock tracking for ${c.untracked_in_swell === 1 ? "it" : "them"} in Swell.`
+      : "";
+
+    $("failures").hidden = !c.failures.length;
+    $("failure-list").replaceChildren(...c.failures.map((f) => {
+      const li = document.createElement("li");
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = f.name || f.product_id;
+      if (f.sku) {
+        const sku = document.createElement("span");
+        sku.className = "sku";
+        sku.textContent = ` · ${f.sku}`;
+        name.append(sku);
+      }
+      const why = document.createElement("span");
+      why.className = "why";
+      why.textContent = f.error || "Unknown error";
+      li.append(name, why);
+      return li;
+    }));
+
+    if (running) refreshTimer = setTimeout(refreshStatus, 5000);
+  }
+
+  async function refreshStatus() {
+    try {
+      render(await api("/app-api/status", {}));
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  function syncProducts() {
+    const warning = state.products.inventory
+      ? "Sync all products with Zoho? For items Zoho Inventory already tracks, the Swell stock level will be replaced with Zoho's."
+      : "Sync all products with Zoho Books?";
+    if (!confirm(warning)) return;
+    run($("sync-products"), async () => {
+      await api("/app-api/products/sync", {});
+      return api("/app-api/status", {});
+    });
+  }
+
+  async function load() {
+    try {
+      render(await api("/app-api/status", {}));
+    } catch (e) {
+      $("fatal").textContent = e.message;
+      $("fatal").hidden = false;
+      $("badge").textContent = "Unavailable";
+    }
+  }
+
+  function waitForCallback(before) {
+    clearInterval(pollTimer);
+    let tries = 0;
+    $("connect-hint").textContent = "Finish signing in to Zoho in the new tab…";
+    pollTimer = setInterval(async () => {
+      tries += 1;
+      try {
+        const s = await api("/app-api/status", {});
+        if (s.date_connected !== before.date_connected || s.last_error !== before.last_error || tries > 100) {
+          clearInterval(pollTimer);
+          render(s);
+        }
+      } catch (e) {
+        clearInterval(pollTimer);
+        showError(e.message);
+      }
+    }, 3000);
+  }
+
+  async function connect() {
+    showError("");
+    // Open the tab inside the click so popup blockers allow it.
+    const tab = window.open("", "_blank");
+    try {
+      const { authorize_url } = await api("/app-api/connect", {});
+      if (tab) {
+        tab.opener = null;
+        tab.location.href = authorize_url;
+      } else {
+        window.open(authorize_url, "_blank", "noopener");
+      }
+      waitForCallback(state || {});
+    } catch (e) {
+      if (tab) tab.close();
+      showError(e.message);
+    }
+  }
+
+  async function run(button, action) {
+    button.disabled = true;
+    showError("");
+    try {
+      render({ ...state, ...(await action()) });
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      button.disabled = false;
+      // Buttons that depend on state (e.g. Sync while running) are re-evaluated.
+      if (state) renderCatalog(state);
+    }
+  }
+
+  $("connect").addEventListener("click", connect);
+  $("reconnect").addEventListener("click", connect);
+  $("disconnect").addEventListener("click", () => {
+    if (confirm("Disconnect Zoho? Syncing stops until you connect again.")) run($("disconnect"), () => api("/app-api/disconnect", {}));
+  });
+  $("org-save").addEventListener("click", () =>
+    run($("org-save"), async () => {
+      await api("/app-api/organization", { organization_id: $("org-select").value });
+      return api("/app-api/status", {});
+    }));
+  $("sync-products").addEventListener("click", syncProducts);
+  $("setup-rules").addEventListener("click", setUpRules);
+  // The dashboard embeds this page in an iframe without clipboard-write
+  // permission, so the Clipboard API fails there; a selected textarea and
+  // execCommand("copy") still work on a click.
+  function copyText(text) {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.append(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+
+  async function copyFrom(button, source) {
+    const text = source.textContent;
+    let ok = copyText(text);
+    if (!ok) {
+      try {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } catch {
+        ok = false;
+      }
+    }
+    if (!ok) {
+      const range = document.createRange();
+      range.selectNodeContents(source);
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    }
+    button.textContent = ok ? "Copied" : "Press ⌘C";
+    setTimeout(() => (button.textContent = "Copy"), 2000);
+  }
+  $("copy").addEventListener("click", () => copyFrom($("copy"), $("callback")));
+  document.querySelectorAll("[data-copy]").forEach((button) =>
+    button.addEventListener("click", () => copyFrom(button, $(button.dataset.copy))));
+
+  load();
+})();
+</script>
+</body>
+</html>

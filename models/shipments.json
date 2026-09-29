@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.swell.store/model.json",
+  "collection": "shipments",
+  "description": "The Zoho shipment a Swell shipment was created from, stored under $app.zoho",
+  "fields": {
+    "zoho_shipment_id": {
+      "type": "string",
+      "description": "Zoho shipment (or package) this shipment mirrors"
+    }
+  }
+}

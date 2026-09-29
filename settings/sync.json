@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.swell.store/setting.json",
+  "label": "Step 2 · What to sync",
+  "description": "Both are on by default. Turning one off stops it from then on; nothing already in Zoho is changed or removed.",
+  "fields": [
+    {
+      "id": "products",
+      "label": "Products, variants and stock: each linked to a Zoho item, with Zoho owning stock",
+      "description": "Create or link a Zoho item for every product and variant, and send name, SKU and price changes to Zoho.",
+      "type": "boolean",
+      "ui": "toggle",
+      "default": true
+    },
+    {
+      "id": "orders",
+      "label": "Orders, customers and payments: sales orders, invoices and payments in Zoho",
+      "description": "Placed orders become Zoho sales orders (Inventory); paid orders get an invoice and a recorded payment. Customers are added as Zoho contacts with their first order.",
+      "type": "boolean",
+      "ui": "toggle",
+      "default": true
+    }
+  ]
+}

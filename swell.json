@@ -1,0 +1,42 @@
+{
+  "description": "Sync orders, products, stock and customers with Zoho Books & Inventory",
+  "id": "zoho",
+  "name": "Zoho",
+  "type": "integration",
+  "support_email": "support@swell.is",
+  "version": "1.0.0",
+  "permissions": [
+    "read_settings",
+    "write_products",
+    "write_accounts",
+    "write_orders",
+    "write_shipments"
+  ],
+  "full_description": "Keep your Swell store and Zoho in step: products, customers, orders, payments, stock and shipments. Works with Zoho Books, Zoho Inventory, or both, in every Zoho data center.\n\n**Connect your own Zoho account.** Register a Zoho API client, paste its credentials in the app settings and press Connect. Tokens stay in your store; Disconnect revokes the app's access at Zoho.\n\n**Products.** Every Swell product and variant is linked to a Zoho item by SKU (or an exact name when there is no SKU). Existing items are linked without changes; missing ones are created, with Swell's stock as their opening stock. Later edits to names, SKUs, prices and status follow on their own, and a Sync products button covers the existing catalog.\n\n**Orders.** A placed order becomes a Zoho sales order that reserves the stock. When it is paid, an invoice is created from it and the payment is recorded. Customers become Zoho contacts with their first order, matched by email. Line discounts, shipping and taxes are included; each tax is matched to the Zoho tax with the same rate. Cancellations and refunds are reversed in Zoho: before shipping the documents are voided as if the order never happened, after shipping a money-only credit note and its refund are recorded.\n\n**Zoho owns stock.** Stock changes in Zoho (adjustments, purchase receives, transfers, returns, sales outside Swell) reach Swell within seconds. One click on the Zoho page sets up the Zoho rules that send them. Units Swell has sold but Zoho has not recorded yet are held back, so Swell does not oversell.\n\n**Shipments.** Shipping an order in Zoho adds a shipment to the Swell order, with the tracking number and carrier.\n\n**Always visible.** The Zoho page in your dashboard shows the connection, catalog sync progress, orders waiting to retry with the reason, and whether each Zoho webhook is receiving. Failed orders retry on their own, or right away with Retry now.\n\nBooks-only organizations get contacts, items and invoices; stock and shipments need Zoho Inventory.",
+  "images": [
+    {
+      "id": "orders",
+      "image_src": "assets/images/1-orders.png",
+      "title": "Every order, straight into Zoho",
+      "description": "Placed orders become Zoho sales orders. Paid orders get the invoice and the payment, and refunds are reversed in Zoho."
+    },
+    {
+      "id": "stock",
+      "image_src": "assets/images/2-stock.png",
+      "title": "Stock you manage in one place",
+      "description": "Receive, adjust or transfer stock in Zoho Inventory, and Swell stock follows within seconds."
+    },
+    {
+      "id": "shipments",
+      "image_src": "assets/images/3-shipments.png",
+      "title": "Shipped in Zoho, tracked in Swell",
+      "description": "Every Zoho shipment lands on the Swell order with its carrier and tracking number, and the customer gets the shipping email."
+    },
+    {
+      "id": "products",
+      "image_src": "assets/images/4-catalog.png",
+      "title": "Your catalog in Zoho, linked by SKU",
+      "description": "Every product and variant gets a Zoho item. Items you already have are linked by SKU, missing ones are created."
+    }
+  ]
+}

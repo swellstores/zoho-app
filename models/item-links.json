@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json.swell.store/model.json",
+  "collection": "item-links",
+  "label": "Zoho item links",
+  "description": "Which Zoho item each Swell product or variant is linked to. Kept apart from the product record so that sync writes never re-trigger product events.",
+  "fields": {
+    "product_id": {
+      "type": "objectid",
+      "required": true
+    },
+    "product": {
+      "type": "link",
+      "model": "products",
+      "key": "product_id"
+    },
+    "variant_id": {
+      "type": "objectid",
+      "description": "Empty when the product has no variants"
+    },
+    "name": {
+      "type": "string",
+      "description": "Item name as sent to Zoho at the last sync"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "zoho_item_id": {
+      "type": "string"
+    },
+    "zoho_tracked": {
+      "type": "bool",
+      "default": false,
+      "description": "Zoho Inventory tracks stock for this item"
+    },
+    "swell_tracked": {
+      "type": "bool",
+      "default": false,
+      "description": "Swell tracks stock for this product"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "error",
+        "skipped"
+      ]
+    },
+    "error": {
+      "type": "string"
+    },
+    "date_synced": {
+      "type": "date"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# The page changes with every deploy; the Swell admin proxy must not keep an old copy.
+/
+  Cache-Control: no-store
+/index.html
+  Cache-Control: no-store
