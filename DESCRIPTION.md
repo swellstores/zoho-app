@@ -10,7 +10,7 @@ Every product and variant in your Swell store gets a matching item in Zoho.
 
 - Items you already have in Zoho are found by SKU and linked, without changing them.
 - Missing items are created for you, each variant as its own item, with your current stock as the opening stock.
-- Change a name, SKU, price or status in Swell, and the Zoho item follows.
+- Change a name, SKU or price in Swell, and the Zoho item follows.
 - One **Sync products** button brings your whole existing catalog over, with live progress and a clear list of anything Zoho could not accept.
 
 ## Every order in your books

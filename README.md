@@ -17,7 +17,7 @@ Connects the store to one Zoho organization through the merchant's own Zoho API 
 
 ### Products and variants
 
-Every product and variant is linked to a Zoho item: by SKU, or by an exact name when there is no SKU. Items that already exist in Zoho are linked without changes; missing ones are created (each variant as its own item, named "Product — Variant"). Stock-tracked products become stock items in Zoho Inventory, with Swell's stock as opening stock, valued at the product's regular price. Later changes to a name, SKU, price or status are sent to Zoho. **Sync products** brings the existing catalog over in the background, with progress and a list of anything Zoho rejected. Deleting a product in Swell leaves its Zoho item in place.
+Every product and variant is linked to a Zoho item: by SKU, or by an exact name when there is no SKU. Items that already exist in Zoho are linked without changes, and the product's Swell stock is set to Zoho's available quantity; missing ones are created for active products (each variant as its own item, named "Product — Variant"). Stock-tracked products become stock items in Zoho Inventory, with Swell's stock as opening stock, valued at the product's regular price. Later changes to a name, SKU or price are sent to Zoho; status changes are not. **Sync products** brings the existing catalog over in the background, with progress and a list of anything Zoho rejected. It does not refresh the stock of items that are already linked. Deleting a product in Swell leaves its Zoho item in place.
 
 - **Where you see it:** the **Products** card on the Zoho page.
 - **Built with:** `product-sync` (`product.created`, `.updated`, `.deleted`, and the same for variants), `product-backfill` (cron, every minute: works only while a catalog sync or a stock refresh runs), the app collection `item-links`.
@@ -39,8 +39,9 @@ A placed order becomes a Zoho sales order, which reserves the stock. When the or
 ### Cancellations and refunds
 
 - Canceled before payment: the sales order is voided and the stock released.
-- Canceled after payment, before shipping: the payment is removed and the invoice and sales order voided, as if the order never happened.
-- Refunded after shipping: a credit note for the money and its refund are recorded. No stock moves; returned goods count again when the warehouse receives them in Zoho.
+- Canceled after payment, before anything is packed or shipped: the payment is removed and the invoice and sales order voided, as if the order never happened.
+- Canceled or fully refunded after anything was packed or shipped: a money-only credit note for the whole invoice is recorded, and its refund when the order is refunded. No stock moves; returned goods count again when the warehouse receives them in Zoho. The sales order is not voided, so unshipped items stay reserved.
+- Fully refunded without being canceled: the same credit note and refund, even when nothing has shipped. The sales order stays open with its stock reserved.
 
 - **Where you see it:** the **Zoho** tab on the order.
 - **Built with:** `order-sync` (`order.canceled`, `order.refunded`).
@@ -61,9 +62,9 @@ When an order is shipped in Zoho, the Swell order gets a shipment with the carri
 
 ### One-click Zoho rules
 
-The app reads the Zoho organization's workflow rules and shows, per Zoho module, whether the rule that sends updates to Swell is set up, missing, turned off or in need of an update. **Set up in Zoho** creates the missing ones and updates the others. Manual setup steps, with the address and headers to use, are there too.
+The app reads the Zoho organization's workflow rules and shows, per Zoho module, whether the rule that sends updates to Swell is set up, missing, turned off or in need of an update. **Set up in Zoho** creates the missing ones and updates outdated ones; a rule turned off in Zoho has to be turned back on there. Manual setup steps, with the address and headers to use, are there too.
 
-If you install the app again, the rules keep working: within a minute the app points them at the new installation by itself, then refreshes Swell stock from Zoho for every linked item, so changes made in between are not lost.
+If you install the app again, the rules keep working: within a few minutes the app points them at the new installation by itself, then refreshes Swell stock from Zoho for every linked item Zoho tracks, so changes made in between are not lost.
 
 - **Where you see it:** the **Updates from Zoho** card on the Zoho page.
 - **Built with:** the app page, through Zoho's webhook and workflow settings; `product-backfill` (cron, every minute) for the update after a reinstall.
@@ -101,7 +102,7 @@ If you install the app again, the rules keep working: within a minute the app po
 
 | Setting | What it does |
 |---|---|
-| Products, variants and stock | Links products and variants to Zoho items and keeps them updated. Off: product changes and **Sync products** stop. |
+| Products, variants and stock | Links products and variants to Zoho items and keeps them updated. Off: product changes are not sent and **Sync products** can't be started; stock updates from Zoho continue, and orders still create Zoho items for lines that have none. |
 | Orders, customers and payments | Sends orders, customers, invoices and payments to Zoho. Off: new orders are not sent. |
 
 Both are on by default. Turning one off stops it from then on; nothing already in Zoho is changed.
@@ -131,18 +132,18 @@ Read and write access to contacts, items, sales orders, invoices, customer payme
 - Swell stock locations (all stock is Zoho's default location).
 - Order lines with more than one tax.
 - Deleting a stock document in Zoho (an adjustment or receive) does not update Swell until the next change of that item.
-- Orders placed before connecting are not sent.
+- Orders placed while the app is not connected, or while order sync is off, are not sent when placed. If such an order is paid or fully refunded later, it is sent then.
 - Amounts are sent without currency conversion.
 
 **Rate limits**
 
 - Zoho's API allows 100 calls a minute per organization and a daily number that depends on the Zoho plan (about 1,000 to 10,000). The catalog sync pauses at a limit and continues by itself; orders are retried.
-- Zoho limits workflow webhook calls per day by plan. Each Swell order causes a few stock calls (its sales order and invoice) and one per shipment. Calls over the limit are not sent; Swell stock then catches up with the next call or **Sync products**.
+- Zoho limits workflow webhook calls per day by plan. Each Swell order causes a few stock calls (its sales order and invoice) and one per shipment. Calls over the limit are not sent; Swell stock then catches up with the item's next stock call. **Sync products** does not refresh items that are already linked.
 - Swell stops functions after 10 seconds. Orders that need more calls continue in follow-up runs, usually within a minute.
 
 **Environments**
 
-- Each Swell environment (test and live) has its own connection, settings and webhook keys.
+- Each Swell environment (test and live) has its own connection, settings and webhook keys. Connect them to different Zoho organizations: both use the same webhook address, so the environment connected last takes over the other's Zoho rules.
 - Installing the app again gives the Zoho page a new address. Before you press **Reconnect**, replace the redirect URI in the Zoho API Console with the new one; the Zoho page shows it and warns you. The Zoho rules are updated by the app itself.
 - Every Zoho data center is supported: US, EU, India, Australia, Japan, Canada, Saudi Arabia and UK.
 - Tested end to end in the test environment of the swell-apps store, with a Zoho Books + Inventory organization in the EU data center. Books-only organizations are covered by automated tests only.
@@ -151,6 +152,8 @@ Read and write access to contacts, items, sales orders, invoices, customer payme
 
 - The client secret is visible to store admins in the settings (Swell has no masked setting field).
 - The Zoho API client is created by each merchant, because Swell apps have no store-independent sign-in address to register with Zoho.
+- Switching to another Zoho organization keeps the links to the first organization's items and contacts, so orders sent afterwards can fail.
+- Units held back for unsent orders only cover orders from the last 7 days that were placed since the last connect, so reconnecting stops holding back older ones.
 
 ---
 
