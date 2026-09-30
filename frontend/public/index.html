@@ -479,7 +479,7 @@
     $("stat-orders-failed").textContent = String(o.failed);
     $("stat-orders-failed-tile").classList.toggle("bad", Boolean(o.failed));
     $("orders-state").textContent = o.sync_enabled
-      ? "New orders sync on their own. Orders placed before connecting are not sent."
+      ? "New orders sync on their own. Orders placed before connecting are only sent if they are paid or refunded later."
       : "Order sync is turned off in the app settings.";
 
     $("order-failures").hidden = !o.failures.length;
@@ -590,7 +590,7 @@
     const stockGaps = notReady(stock);
     $("hook-stock-missing").hidden = !w.rules || !stockGaps.length;
     $("hook-stock-missing-text").textContent = stockGaps.length === stock.length
-      ? "Swell stock changes only when you sync products. Stock received, adjusted or sold outside Swell stays out of date in Swell, so Swell can sell items Zoho no longer has."
+      ? "Swell stock is only set from Zoho when a product is first linked. Stock received, adjusted or sold outside Swell stays out of date in Swell, so Swell can sell items Zoho no longer has."
       : `Changes from ${stockGaps.map((r) => r.label.toLowerCase()).join(", ")} don't reach Swell stock until then.`;
 
     const todo = toDo(rules);
@@ -667,7 +667,7 @@
       "A Swell product or variant is linked to the Zoho item with the same SKU. Without a SKU, it is linked only when exactly one Zoho item has exactly the same name.",
       "Items that already exist in Zoho are linked without being changed.",
       "Missing items are created for active products. Each variant becomes its own item, named “Product — Variant”.",
-      "Later edits to a product's name, SKU, price or status in Swell are sent to its Zoho item.",
+      "Later edits to a product's name, SKU or price in Swell are sent to its Zoho item.",
     ];
     if (inventory) {
       rules.push("Zoho owns stock: for items Zoho Inventory tracks, the Swell stock level is replaced with Zoho's. New items start with Swell's stock.");
