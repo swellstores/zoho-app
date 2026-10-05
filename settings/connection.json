@@ -35,7 +35,7 @@
           "label": "Client secret",
           "description": "From the same client. Changing it later requires connecting again.",
           "placeholder": "Shown next to the Client ID in the API Console",
-          "type": "short_text"
+          "type": "secret"
         }
       ]
     }
