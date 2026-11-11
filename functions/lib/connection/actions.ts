@@ -2,7 +2,13 @@ import { AppError, type AppContext } from '../swell-client';
 import { createZohoClient } from '../zoho/client';
 import { buildAuthorizeUrl, revokeToken } from '../zoho/oauth';
 import { buildState, createNonce, STATE_TTL_MS } from '../zoho/state';
-import { connectionSettingsFrom, readConnectionSettings, selectedDataCenter } from './settings';
+import {
+  connectedOrganization,
+  connectionSettingsFrom,
+  readConnectionSettings,
+  saveConnectedOrganization,
+  selectedDataCenter,
+} from './settings';
 import {
   CLEARED_CONNECTION,
   WEBHOOKS_UNSEEN,
@@ -52,6 +58,10 @@ export async function getStatus(
     storeCurrency(ctx),
   ]);
   const connection = await ensureOrganizationCurrency(ctx, loaded);
+  // Fills in the settings field for connections made before it existed, or after a failed write.
+  if ((settings?.connection?.organization ?? null) !== connectedOrganization(connection)) {
+    await saveConnectedOrganization(ctx, connection);
+  }
   return {
     ...toView(connection),
     credentials_configured: Boolean(connectionSettingsFrom(settings)),
@@ -113,6 +123,7 @@ export async function selectOrganization(ctx: AppContext, organizationId: unknow
     has_inventory: org.inventory,
     ...(org.organization_id !== connection.organization_id ? WEBHOOKS_UNSEEN : {}),
   });
+  await saveConnectedOrganization(ctx, updated);
   return toView(updated);
 }
 
@@ -137,5 +148,6 @@ export async function disconnect(ctx: AppContext): Promise<ConnectionView> {
     status: 'disconnected',
     last_error: lastError,
   });
+  await saveConnectedOrganization(ctx, updated);
   return toView(updated);
 }

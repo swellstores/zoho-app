@@ -97,6 +97,7 @@ If you install the app again, the rules keep working: within a few minutes the a
 | Zoho data center | The Zoho region you sign in to. Decides which Zoho sign-in page and API Console are used. |
 | Client ID | From your Zoho API client. |
 | Client secret | From the same client. Changing it requires connecting again. |
+| Connected organization | Read-only. Filled in when you connect on the Zoho page and an organization is chosen; until then the app shows as needing setup. |
 
 **Step 2 · What to sync**
 

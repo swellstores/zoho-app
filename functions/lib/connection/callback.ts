@@ -3,7 +3,7 @@ import { dataCenterByAccountsServer, isKnownApiDomain } from '../zoho/data-cente
 import { exchangeCode, revokeToken, ZohoOAuthError } from '../zoho/oauth';
 import { describeProblems, listOrganizations } from '../zoho/organizations';
 import { parseState, timingSafeEqual } from '../zoho/state';
-import { readConnectionSettings } from './settings';
+import { readConnectionSettings, saveConnectedOrganization } from './settings';
 import { loadConnection, toView, updateConnection, WEBHOOKS_UNSEEN, type Connection, type ConnectionView } from './store';
 
 export interface CallbackParams {
@@ -118,5 +118,6 @@ export async function completeConnect(ctx: AppContext, params: CallbackParams): 
       : `No Zoho Books or Zoho Inventory organization is available to this Zoho user. ${describeProblems(problems)}`.trim(),
     date_connected: new Date().toISOString(),
   });
+  await saveConnectedOrganization(ctx, updated);
   return toView(updated);
 }

@@ -108,15 +108,25 @@ describe("completeConnect: exchange", () => {
     expect(new URLSearchParams(String(tokenCall[1]!.body)).get("redirect_uri")).toBe(CALLBACK);
   });
 
+  it("names the connected organization in the settings, so the app no longer needs setup", async () => {
+    vi.stubGlobal("fetch", zohoFetch());
+    const { ctx, settings } = setup();
+
+    await completeConnect(ctx, { code: "c", state: STATE, accounts_server: EU });
+
+    expect(settings().connection).toMatchObject({ client_id: "1000.CLIENT", organization: "Acme" });
+  });
+
   it("leaves the org unselected when the user has several", async () => {
     vi.stubGlobal("fetch", zohoFetch({ orgs: [{ organization_id: "1", name: "A" }, { organization_id: "2", name: "B" }] }));
-    const { ctx } = setup();
+    const { ctx, settings } = setup();
 
     const view = await completeConnect(ctx, { code: "c", state: STATE, accounts_server: EU });
 
     expect(view.status).toBe("connected");
     expect(view.organization).toBeNull();
     expect(view.organizations).toHaveLength(2);
+    expect(settings().connection.organization).toBeNull();
   });
 
   it("never sends the client secret to an unknown accounts server", async () => {

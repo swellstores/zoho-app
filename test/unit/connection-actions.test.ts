@@ -93,6 +93,20 @@ describe("currency", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("fills in the organization in the settings for a connection made before the field existed", async () => {
+    const { ctx, swell, settings } = createFakeSwell({
+      connection: { ...CONNECTED, organization_id: "1", organization_name: "Both Ltd", organization_currency: "PLN" },
+      settings: CONFIGURED_SETTINGS,
+    });
+
+    await getStatus(ctx);
+    expect(settings().connection.organization).toBe("Both Ltd");
+
+    swell.put.mockClear();
+    await getStatus(ctx);
+    expect(swell.put).not.toHaveBeenCalled();
+  });
+
   it("stores the chosen organization's currency", async () => {
     const { ctx, current } = createFakeSwell({
       connection: {
@@ -161,6 +175,12 @@ describe("selectOrganization", () => {
     expect(other.current()).toMatchObject({ webhook_secret: "s", webhook_stock_at: null, webhook_shipments_at: null, webhook_stock_sources: [] });
   });
 
+  it("names the chosen organization in the settings", async () => {
+    const { ctx, settings } = createFakeSwell({ connection: CONNECTED, settings: CONFIGURED_SETTINGS });
+    await selectOrganization(ctx, "2");
+    expect(settings().connection).toMatchObject({ client_id: "1000.CLIENT", organization: "Books Only" });
+  });
+
   it("rejects an org id that was not offered", async () => {
     const { ctx } = createFakeSwell({ connection: CONNECTED });
     await expect(selectOrganization(ctx, "999")).rejects.toMatchObject({ code: "unknown_organization" });
@@ -186,6 +206,18 @@ describe("disconnect", () => {
     expect(view).toMatchObject({ status: "disconnected", organization: null, organizations: [] });
     expect(current()!.refresh_token).toBeNull();
     expect(current()!.access_token).toBeNull();
+  });
+
+  it("clears the organization in the settings", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({})));
+    const { ctx, settings } = createFakeSwell({
+      connection: { ...CONNECTED, organization_id: "1", organization_name: "Both Ltd" },
+      settings: { connection: { ...CONFIGURED_SETTINGS.connection, organization: "Both Ltd" } },
+    });
+
+    await disconnect(ctx);
+
+    expect(settings().connection).toMatchObject({ client_id: "1000.CLIENT", organization: null });
   });
 
   it("still disconnects when Zoho is unreachable, and says so", async () => {

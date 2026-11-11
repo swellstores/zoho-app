@@ -28,16 +28,25 @@
           "label": "Client ID",
           "description": "From your server-based client in the Zoho API Console.",
           "placeholder": "1000.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-          "type": "short_text"
+          "type": "short_text",
+          "required": true
         },
         {
           "id": "client_secret",
           "label": "Client secret",
           "description": "From the same client. Changing it later requires connecting again.",
           "placeholder": "Shown next to the Client ID in the API Console",
-          "type": "secret"
+          "type": "secret",
+          "required": true
         }
       ]
+    },
+    {
+      "id": "organization",
+      "label": "Connected organization",
+      "type": "short_text",
+      "readonly": true,
+      "description": "Filled in when you press Connect on the Zoho page."
     }
   ]
 }

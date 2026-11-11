@@ -15,7 +15,7 @@ export function createFakeSwell(options: {
   storeSettings?: Record<string, any>;
 } = {}) {
   let record: Record<string, any> | null = options.connection ?? null;
-  const settings = options.settings ?? {};
+  const settings: Record<string, any> = structuredClone(options.settings ?? {});
 
   const applyPatch = (patch: Record<string, any>) => {
     const next = { ...record };
@@ -38,6 +38,10 @@ export function createFakeSwell(options: {
       return record;
     }),
     put: vi.fn(async (url: string, patch: Record<string, any>) => {
+      if (url === `/settings/${APP_ID}`) {
+        for (const [group, values] of Object.entries(patch)) settings[group] = { ...settings[group], ...values };
+        return settings;
+      }
       if (!record || url !== `${COLLECTION}/${record.id}`) throw new Error(`unexpected PUT ${url}`);
       return applyPatch(patch);
     }),
@@ -48,7 +52,7 @@ export function createFakeSwell(options: {
   };
 
   const ctx: AppContext = { swell, appId: APP_ID, storeId: STORE_ID };
-  return { swell, ctx, current: () => record };
+  return { swell, ctx, current: () => record, settings: () => settings };
 }
 
 export const CONFIGURED_SETTINGS = {

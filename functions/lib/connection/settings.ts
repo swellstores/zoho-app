@@ -1,6 +1,7 @@
 import { dataCenterByLocation, type DataCenter } from '../zoho/data-centers';
-import type { SwellClient } from '../swell-client';
+import type { AppContext, SwellClient } from '../swell-client';
 import type { ClientCredentials } from '../zoho/oauth';
+import type { Connection } from './store';
 
 export interface ConnectionSettings extends ClientCredentials {
   dataCenter: DataCenter;
@@ -24,4 +25,23 @@ export function connectionSettingsFrom(settings: Record<string, any> | null | un
 /** Reads settings/connection.json; null until the merchant has filled it in. */
 export async function readConnectionSettings(swell: SwellClient): Promise<ConnectionSettings | null> {
   return connectionSettingsFrom(await swell.settings());
+}
+
+/** The organization the app works with, as shown in the settings; null until Connect is done and one is chosen. */
+export function connectedOrganization(connection: Connection | null): string | null {
+  if (connection?.status !== 'connected' || !connection.organization_id) return null;
+  return connection.organization_name || connection.organization_id;
+}
+
+/**
+ * Mirrors the organization into the readonly `organization` field of
+ * settings/connection.json, so the settings show which organization is
+ * connected. Best effort: the Zoho page writes it again on load.
+ */
+export async function saveConnectedOrganization(ctx: AppContext, connection: Connection | null): Promise<void> {
+  try {
+    await ctx.swell.put(`/settings/${ctx.appId}`, { connection: { organization: connectedOrganization(connection) } });
+  } catch (error) {
+    console.error('Unable to save the Zoho organization in the settings:', (error as Error).message);
+  }
 }
