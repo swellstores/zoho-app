@@ -3,8 +3,8 @@
   "devDependencies": {
     "@swell/app-types": "^1.2.0",
     "typescript": "^5.9.3",
-    "@cloudflare/vitest-pool-workers": "0.8.x",
-    "vitest": "3.2.x"
+    "@cloudflare/vitest-pool-workers": "0.23.x",
+    "vitest": "5.1.x"
   },
   "name": "zoho",
   "license": "SEE LICENSE IN LICENSE",
