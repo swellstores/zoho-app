@@ -5,7 +5,7 @@
 	"type": "integration",
 	"support_email": "support@swell.is",
 	"documentation_url": "https://developers.swell.is/app-guides/zoho",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"permissions": [
 		"read_settings",
 		"write_products",
